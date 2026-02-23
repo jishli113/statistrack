@@ -28,9 +28,59 @@ const statusLabels = {
   rejected: 'Rejected',
 }
 
+// Mock data for demonstration
+const mockApplications: JobApplication[] = [
+  {
+    id: 'mock-1',
+    company: 'Google',
+    position: 'Software Engineer',
+    status: 'interview',
+    appliedDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    location: 'Mountain View, CA',
+    notes: 'Technical interview scheduled for next week. Focus on algorithms and system design.',
+  },
+  {
+    id: 'mock-2',
+    company: 'Microsoft',
+    position: 'Full Stack Developer',
+    status: 'applied',
+    appliedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    location: 'Seattle, WA',
+    notes: 'Applied through company website. Waiting for response.',
+  },
+  {
+    id: 'mock-3',
+    company: 'Apple',
+    position: 'iOS Developer',
+    status: 'offer',
+    appliedDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    location: 'Cupertino, CA',
+    notes: 'Received offer! $150k base + stock options. Considering...',
+  },
+  {
+    id: 'mock-4',
+    company: 'Amazon',
+    position: 'Cloud Solutions Architect',
+    status: 'rejected',
+    appliedDate: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    location: 'Seattle, WA',
+    notes: 'Not selected after final round. Will reapply in 6 months.',
+  },
+  {
+    id: 'mock-5',
+    company: 'Meta',
+    position: 'Frontend Engineer',
+    status: 'interview',
+    appliedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    location: 'Menlo Park, CA',
+    notes: 'Passed phone screen. On-site interview next month.',
+  },
+]
+
 export default function Dashboard() {
   const { data: session } = useSession()
   const [applications, setApplications] = useState<JobApplication[]>([])
+  const [showMockData, setShowMockData] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [editingApp, setEditingApp] = useState<JobApplication | null>(null)
   const [formData, setFormData] = useState({
@@ -46,15 +96,30 @@ export default function Dashboard() {
     fetchApplications()
   }, [])
 
+  const loadMockData = () => {
+    setApplications(mockApplications)
+    setShowMockData(true)
+  }
+
   const fetchApplications = async () => {
     try {
       const res = await fetch('/api/applications')
       if (res.ok) {
         const data = await res.json()
         setApplications(data)
+        // If no real data and mock data is showing, keep mock data
+        if (data.length === 0 && showMockData) {
+          setApplications(mockApplications)
+        } else if (data.length > 0) {
+          setShowMockData(false)
+        }
       }
     } catch (error) {
       console.error('Failed to fetch applications:', error)
+      // On error, show mock data if enabled
+      if (showMockData) {
+        setApplications(mockApplications)
+      }
     }
   }
 
@@ -203,7 +268,14 @@ export default function Dashboard() {
 
         {/* Actions */}
         <div className="mb-6 flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-900">Applications</h2>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Applications</h2>
+            {showMockData && (
+              <p className="text-sm text-gray-500 mt-1">
+                Showing sample data • <button onClick={() => { setApplications([]); setShowMockData(false); }} className="text-indigo-600 hover:text-indigo-800 underline">Clear</button>
+              </p>
+            )}
+          </div>
           <button
             onClick={openNewModal}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
@@ -218,14 +290,23 @@ export default function Dashboard() {
           <div className="bg-white rounded-lg shadow p-12 text-center">
             <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No applications yet</h3>
-            <p className="text-gray-600 mb-4">Get started by adding your first job application</p>
-            <button
-              onClick={openNewModal}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-            >
-              <Plus className="h-5 w-5" />
-              Add Application
-            </button>
+            <p className="text-gray-600 mb-4">Get started by adding your first job application or view sample data</p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={openNewModal}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                <Plus className="h-5 w-5" />
+                Add Application
+              </button>
+              <button
+                onClick={loadMockData}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                <Briefcase className="h-5 w-5" />
+                View Sample Data
+              </button>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

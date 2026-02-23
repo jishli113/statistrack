@@ -41,7 +41,8 @@ export default function LoginPage() {
 
       if (result?.error) {
         setError('Invalid email or password')
-      } else {
+      } else if (result?.ok) {
+        // Redirect to dashboard after successful sign in
         router.push('/')
         router.refresh()
       }
