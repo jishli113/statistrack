@@ -35,53 +35,71 @@ const statusLabels = {
 }
 
 // Mock data for demonstration
-const mockApplications: JobApplication[] = [
-  {
-    id: 'mock-1',
-    company: 'Google',
-    position: 'Software Engineer',
-    status: 'interview',
-    appliedDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    location: 'Mountain View, CA',
-    notes: 'Technical interview scheduled for next week. Focus on algorithms and system design.',
-  },
-  {
-    id: 'mock-2',
-    company: 'Microsoft',
-    position: 'Full Stack Developer',
-    status: 'applied',
-    appliedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    location: 'Seattle, WA',
-    notes: 'Applied through company website. Waiting for response.',
-  },
-  {
-    id: 'mock-3',
-    company: 'Apple',
-    position: 'iOS Developer',
-    status: 'offer',
-    appliedDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    location: 'Cupertino, CA',
-    notes: 'Received offer! $150k base + stock options. Considering...',
-  },
-  {
-    id: 'mock-4',
-    company: 'Amazon',
-    position: 'Cloud Solutions Architect',
-    status: 'rejected_after_interview',
-    appliedDate: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    location: 'Seattle, WA',
-    notes: 'Not selected after final round. Will reapply in 6 months.',
-  },
-  {
-    id: 'mock-5',
-    company: 'Meta',
-    position: 'Frontend Engineer',
-    status: 'interview',
-    appliedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    location: 'Menlo Park, CA',
-    notes: 'Passed phone screen. On-site interview next month.',
-  },
+const companies = [
+  'Google', 'Microsoft', 'Apple', 'Amazon', 'Meta', 'Netflix', 'Uber', 'Airbnb', 'Stripe', 'Palantir',
+  'Tesla', 'Nvidia', 'Adobe', 'Salesforce', 'Oracle', 'IBM', 'Intel', 'Cisco', 'VMware', 'Splunk',
+  'Databricks', 'Snowflake', 'MongoDB', 'Elastic', 'GitHub', 'GitLab', 'Atlassian', 'Zoom', 'Slack', 'Discord',
+  'Spotify', 'Pinterest', 'Snapchat', 'TikTok', 'ByteDance', 'LinkedIn', 'Twitter', 'Reddit', 'Twitch', 'Roblox',
+  'Coinbase', 'Square', 'PayPal', 'Visa', 'Mastercard', 'Goldman Sachs', 'JPMorgan', 'Morgan Stanley', 'Bloomberg', 'Two Sigma'
 ]
+
+const positions = [
+  'Software Engineer', 'Full Stack Developer', 'Frontend Engineer', 'Backend Engineer', 'DevOps Engineer',
+  'Data Engineer', 'Data Scientist', 'Machine Learning Engineer', 'iOS Developer', 'Android Developer',
+  'Cloud Solutions Architect', 'Security Engineer', 'QA Engineer', 'Product Manager', 'Technical Program Manager',
+  'Site Reliability Engineer', 'Systems Engineer', 'Database Administrator', 'Network Engineer', 'Cybersecurity Analyst',
+  'UI/UX Designer', 'Product Designer', 'Research Scientist', 'Applied Scientist', 'Algorithm Engineer',
+  'Platform Engineer', 'Infrastructure Engineer', 'Solutions Architect', 'Technical Lead', 'Engineering Manager'
+]
+
+const locations = [
+  'San Francisco, CA', 'Mountain View, CA', 'Palo Alto, CA', 'Cupertino, CA', 'Menlo Park, CA',
+  'Seattle, WA', 'Bellevue, WA', 'Redmond, WA', 'New York, NY', 'Brooklyn, NY',
+  'Boston, MA', 'Cambridge, MA', 'Austin, TX', 'Dallas, TX', 'Chicago, IL',
+  'Denver, CO', 'Portland, OR', 'Los Angeles, CA', 'San Diego, CA', 'Remote'
+]
+
+const generateMockApplications = (): JobApplication[] => {
+  const applications: JobApplication[] = []
+  const statuses: Array<'applied' | 'interview' | 'offer' | 'rejected' | 'rejected_after_interview'> = 
+    ['applied', 'interview', 'offer', 'rejected', 'rejected_after_interview']
+  
+  // Generate 50 applications with dates spanning 6 months
+  for (let i = 0; i < 50; i++) {
+    const daysAgo = Math.floor(Math.random() * 180) // Random date within last 6 months
+    const status = statuses[Math.floor(Math.random() * statuses.length)]
+    const company = companies[Math.floor(Math.random() * companies.length)]
+    const position = positions[Math.floor(Math.random() * positions.length)]
+    const location = locations[Math.floor(Math.random() * locations.length)]
+    
+    const notes = [
+      `Applied through ${Math.random() > 0.5 ? 'company website' : 'LinkedIn'}.`,
+      `Referred by ${Math.random() > 0.5 ? 'colleague' : 'friend'}.`,
+      `Technical interview scheduled.`,
+      `Passed phone screen, moving to next round.`,
+      `Received offer! Considering options.`,
+      `Not selected after ${Math.random() > 0.5 ? 'phone screen' : 'final round'}.`,
+      `Waiting for response.`,
+      `Great culture fit, excited about the role.`,
+      `Competitive salary package.`,
+      `Remote position available.`,
+    ][Math.floor(Math.random() * 10)]
+    
+    applications.push({
+      id: `mock-${i + 1}`,
+      company,
+      position,
+      status,
+      appliedDate: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      location,
+      notes,
+    })
+  }
+  
+  return applications
+}
+
+const mockApplications: JobApplication[] = generateMockApplications()
 
 type SortOrder = 'asc' | 'desc' | null
 type StatusFilter = 'all' | 'applied' | 'interview' | 'offer' | 'rejected' | 'rejected_after_interview'
