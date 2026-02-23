@@ -12,7 +12,7 @@ interface JobApplication {
   id: string
   company: string
   position: string
-  status: 'applied' | 'interview' | 'offer' | 'rejected'
+  status: 'applied' | 'interview' | 'offer' | 'rejected' | 'rejected_after_interview'
   appliedDate: string
   location?: string
   notes?: string
@@ -23,6 +23,7 @@ const statusColors = {
   interview: 'bg-orange-500/30 text-orange-300 border border-orange-500/40',
   offer: 'bg-green-500/20 text-green-400 border border-green-500/30',
   rejected: 'bg-gray-700/50 text-gray-400 border border-gray-600/50',
+  rejected_after_interview: 'bg-red-500/20 text-red-400 border border-red-500/30',
 }
 
 const statusLabels = {
@@ -30,6 +31,7 @@ const statusLabels = {
   interview: 'Interview',
   offer: 'Offer',
   rejected: 'Rejected',
+  rejected_after_interview: 'Rejected (After Interview)',
 }
 
 // Mock data for demonstration
@@ -65,7 +67,7 @@ const mockApplications: JobApplication[] = [
     id: 'mock-4',
     company: 'Amazon',
     position: 'Cloud Solutions Architect',
-    status: 'rejected',
+    status: 'rejected_after_interview',
     appliedDate: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     location: 'Seattle, WA',
     notes: 'Not selected after final round. Will reapply in 6 months.',
@@ -82,7 +84,7 @@ const mockApplications: JobApplication[] = [
 ]
 
 type SortOrder = 'asc' | 'desc' | null
-type StatusFilter = 'all' | JobApplication['status']
+type StatusFilter = 'all' | 'applied' | 'interview' | 'offer' | 'rejected' | 'rejected_after_interview'
 
 export default function Dashboard({ onSignOut }: DashboardProps = {}) {
   const [applications, setApplications] = useState<JobApplication[]>([])
@@ -203,7 +205,15 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
     setShowModal(true)
   }
 
+  // Calculate status counts (combine both rejection types for metrics)
   const statusCounts = applications.reduce((acc, app) => {
+    const status = app.status === 'rejected_after_interview' ? 'rejected' : app.status
+    acc[status] = (acc[status] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+  
+  // Separate counts for filtering
+  const detailedStatusCounts = applications.reduce((acc, app) => {
     acc[app.status] = (acc[app.status] || 0) + 1
     return acc
   }, {} as Record<string, number>)
@@ -223,7 +233,12 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
 
     // Apply status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(app => app.status === statusFilter)
+      if (statusFilter === 'rejected') {
+        // Show both rejection types when filtering by 'rejected'
+        filtered = filtered.filter(app => app.status === 'rejected' || app.status === 'rejected_after_interview')
+      } else {
+        filtered = filtered.filter(app => app.status === statusFilter)
+      }
     }
 
     // Apply date range filter
@@ -358,7 +373,8 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
                 <option value="applied" className="bg-gray-900">Applied</option>
                 <option value="interview" className="bg-gray-900">Interview</option>
                 <option value="offer" className="bg-gray-900">Offer</option>
-                <option value="rejected" className="bg-gray-900">Rejected</option>
+                <option value="rejected" className="bg-gray-900">Rejected (Direct)</option>
+                <option value="rejected_after_interview" className="bg-gray-900">Rejected (After Interview)</option>
               </select>
               <Filter className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             </div>
@@ -611,7 +627,8 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
                   <option value="applied" className="bg-gray-900">Applied</option>
                   <option value="interview" className="bg-gray-900">Interview</option>
                   <option value="offer" className="bg-gray-900">Offer</option>
-                  <option value="rejected" className="bg-gray-900">Rejected</option>
+                  <option value="rejected" className="bg-gray-900">Rejected (Direct)</option>
+                  <option value="rejected_after_interview" className="bg-gray-900">Rejected (After Interview)</option>
                 </select>
               </div>
               <div>

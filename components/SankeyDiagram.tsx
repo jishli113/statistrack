@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 
 interface JobApplication {
   id: string
-  status: 'applied' | 'interview' | 'offer' | 'rejected'
+  status: 'applied' | 'interview' | 'offer' | 'rejected' | 'rejected_after_interview'
 }
 
 interface SankeyDiagramProps {
@@ -48,7 +48,9 @@ export default function SankeyDiagram({ applications }: SankeyDiagramProps) {
     const appliedCount = total // All applications start as applied
     const interviewCount = statusCounts.interview || 0
     const offerCount = statusCounts.offer || 0
-    const rejectedCount = statusCounts.rejected || 0
+    const directRejectedCount = statusCounts.rejected || 0
+    const interviewRejectedCount = statusCounts.rejected_after_interview || 0
+    const totalRejectedCount = directRejectedCount + interviewRejectedCount
     const stillApplied = statusCounts.applied || 0
 
     // Create nodes in order: Applied, Interview, Offer, Rejected
@@ -57,15 +59,11 @@ export default function SankeyDiagram({ applications }: SankeyDiagramProps) {
       { name: 'Applied', value: appliedCount, color: statusConfig.applied.color },
       { name: 'Interview', value: interviewCount + offerCount, color: statusConfig.interview.color }, // Include offers since they went through interview
       { name: 'Offer', value: offerCount, color: statusConfig.offer.color },
-      { name: 'Rejected', value: rejectedCount, color: statusConfig.rejected.color },
+      { name: 'Rejected', value: totalRejectedCount, color: statusConfig.rejected.color },
     ]
 
     // Create links with proper flow
     const linkList: SankeyLink[] = []
-
-    // Calculate flows
-    // All interviews and offers came from applied (since offers require interviews)
-    const totalAdvanced = interviewCount + offerCount
     
     // Applied -> Interview (all that got interviews, including those who got offers)
     if (interviewCount > 0 || offerCount > 0) {
@@ -86,35 +84,20 @@ export default function SankeyDiagram({ applications }: SankeyDiagramProps) {
     }
 
     // Applied -> Rejected (direct rejections without interview)
-    // Rejections that didn't go through interview = total rejected - (interviewCount - offerCount)
-    const directRejections = Math.max(0, rejectedCount - Math.max(0, interviewCount - offerCount))
-    if (directRejections > 0) {
+    if (directRejectedCount > 0) {
       linkList.push({
         source: appliedIndex,
         target: rejectedIndex,
-        value: directRejections,
+        value: directRejectedCount,
       })
     }
 
-    // Interview -> Rejected (rejections after interview but before offer)
-    // These are interviews that didn't lead to offers
-    const interviewRejections = Math.max(0, interviewCount - offerCount)
-    if (interviewRejections > 0) {
+    // Interview -> Rejected (rejections after interview)
+    if (interviewRejectedCount > 0) {
       linkList.push({
         source: interviewIndex,
         target: rejectedIndex,
-        value: interviewRejections,
-      })
-    }
-
-    // Offer -> Rejected (rejections after offer - declined offers)
-    // Remaining rejections after accounting for direct and interview rejections
-    const offerRejections = Math.max(0, rejectedCount - directRejections - interviewRejections)
-    if (offerRejections > 0 && offerCount > 0) {
-      linkList.push({
-        source: offerIndex,
-        target: rejectedIndex,
-        value: offerRejections,
+        value: interviewRejectedCount,
       })
     }
 
