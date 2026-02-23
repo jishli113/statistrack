@@ -91,6 +91,8 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc') // Default: newest first
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [startDate, setStartDate] = useState<string>('')
+  const [endDate, setEndDate] = useState<string>(new Date().toISOString().split('T')[0]) // Default to today
   const [formData, setFormData] = useState({
     company: '',
     position: '',
@@ -223,6 +225,17 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
       filtered = filtered.filter(app => app.status === statusFilter)
     }
 
+    // Apply date range filter
+    if (startDate || endDate) {
+      filtered = filtered.filter(app => {
+        const appDate = new Date(app.appliedDate).getTime()
+        const start = startDate ? new Date(startDate).getTime() : 0
+        const end = endDate ? new Date(endDate).getTime() + 86400000 : Infinity // Add 1 day to include end date
+        
+        return appDate >= start && appDate < end
+      })
+    }
+
     // Apply date sorting
     if (sortOrder) {
       filtered = [...filtered].sort((a, b) => {
@@ -233,7 +246,7 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
     }
 
     return filtered
-  }, [applications, searchQuery, statusFilter, sortOrder])
+  }, [applications, searchQuery, statusFilter, startDate, endDate, sortOrder])
 
   const toggleSortOrder = () => {
     if (sortOrder === 'desc') {
@@ -381,6 +394,46 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
                 className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
               >
                 ✕
+              </button>
+            )}
+          </div>
+
+          {/* Date Range Filter */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+            <div className="flex-1 sm:flex-none sm:w-48">
+              <label className="block text-sm font-medium text-gray-300 mb-2">Start Date</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+                />
+              </div>
+            </div>
+            <div className="flex-1 sm:flex-none sm:w-48">
+              <label className="block text-sm font-medium text-gray-300 mb-2">End Date</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  max={new Date().toISOString().split('T')[0]}
+                  className="w-full pl-10 pr-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+                />
+              </div>
+            </div>
+            {(startDate || endDate !== new Date().toISOString().split('T')[0]) && (
+              <button
+                onClick={() => {
+                  setStartDate('')
+                  setEndDate(new Date().toISOString().split('T')[0])
+                }}
+                className="px-4 py-2 text-sm text-gray-400 hover:text-white border border-gray-700 rounded-lg hover:bg-gray-800 hover:border-orange-500/50 transition-all duration-200"
+              >
+                Clear Dates
               </button>
             )}
           </div>
