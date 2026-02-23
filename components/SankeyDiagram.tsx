@@ -31,6 +31,12 @@ const statusConfig = {
 }
 
 export default function SankeyDiagram({ applications }: SankeyDiagramProps) {
+  // Node indices (Applied, Interview, Offer, Rejected)
+  const appliedIndex = 0
+  const interviewIndex = 1
+  const offerIndex = 2
+  const rejectedIndex = 3
+
   const { nodes, links } = useMemo(() => {
     // Count applications by status
     const statusCounts = applications.reduce((acc, app) => {
@@ -56,10 +62,6 @@ export default function SankeyDiagram({ applications }: SankeyDiagramProps) {
 
     // Create links with proper flow
     const linkList: SankeyLink[] = []
-    const appliedIndex = 0
-    const interviewIndex = 1
-    const offerIndex = 2
-    const rejectedIndex = 3
 
     // Calculate flows
     // All interviews and offers came from applied (since offers require interviews)
