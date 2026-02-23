@@ -16,7 +16,7 @@ A modern web application for tracking job applications and their status, built w
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **Authentication**: NextAuth.js
-- **Database**: PostgreSQL with Prisma ORM
+- **Database**: Supabase (PostgreSQL) with Prisma ORM
 - **Deployment**: Vercel
 
 ## Getting Started
@@ -46,7 +46,7 @@ cp .env.example .env
 ```
 
 Edit `.env` and add:
-- `DATABASE_URL`: Your PostgreSQL connection string (e.g., `postgresql://user:password@localhost:5432/jobtracker?schema=public`)
+- `DATABASE_URL`: Your Supabase PostgreSQL connection string (see Supabase setup below)
 - `NEXTAUTH_SECRET`: Generate one with `openssl rand -base64 32`
 - `NEXTAUTH_URL`: `http://localhost:3000` for local development
 
@@ -56,7 +56,7 @@ npx prisma generate
 npx prisma migrate dev --name init
 ```
 
-**Important**: Make sure to commit and push the migration files created in `prisma/migrations/` to your repository before deploying to Vercel.
+**Important**: Make sure to commit and push the migration files created in `prisma/migrations/` to your repository before deploying.
 
 5. Run the development server:
 ```bash
@@ -65,7 +65,19 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### Local PostgreSQL Setup Options
+### Supabase Setup
+
+See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for detailed instructions.
+
+**Quick setup:**
+1. Create a project at [supabase.com](https://supabase.com)
+2. Get your connection string from **Settings** → **Database** → **Connection string (URI)**
+3. Add `?pgbouncer=true&connection_limit=1` for serverless/connection pooling
+4. Add it to your `.env` file as `DATABASE_URL`
+
+### Local PostgreSQL Setup (Alternative)
+
+If you prefer to use a local PostgreSQL database for development:
 
 **Option 1: Docker (Recommended)**
 ```bash
@@ -83,21 +95,17 @@ docker run --name jobtracker-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_
 
 2. Import your repository in Vercel
 
-3. **Add Vercel Postgres Database:**
-   - In your Vercel project dashboard, go to the "Storage" tab
-   - Click "Create Database" and select "Postgres"
-   - This will automatically add the `DATABASE_URL` environment variable
-
-4. **Add other environment variables in Vercel dashboard:**
+3. **Add environment variables in Vercel dashboard:**
+   - `DATABASE_URL`: Your Supabase PostgreSQL connection string (from Supabase Settings → Database)
    - `NEXTAUTH_URL`: Your Vercel deployment URL (e.g., `https://your-app.vercel.app`)
    - `NEXTAUTH_SECRET`: A secure random string (generate with `openssl rand -base64 32`)
 
-5. **Deploy!** The build will automatically:
+4. **Deploy!** The build will automatically:
    - Generate Prisma Client
    - Run database migrations
    - Build your Next.js app
 
-**Note**: The `DATABASE_URL` from Vercel Postgres is automatically provided and includes SSL, so no additional configuration is needed.
+**Note**: Make sure to use the connection pooling URL from Supabase (with `?pgbouncer=true&connection_limit=1`) for better performance with serverless functions.
 
 ## Project Structure
 
