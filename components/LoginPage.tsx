@@ -69,10 +69,7 @@ export default function LoginPage({ onSignIn }: LoginPageProps) {
 
         <div className="mt-4 text-center">
           <button
-            onClick={() => {
-              setIsSignUp(!isSignUp)
-              setError('')
-            }}
+            onClick={() => setIsSignUp(!isSignUp)}
             className="text-indigo-600 hover:text-indigo-800 text-sm"
           >
             {isSignUp
