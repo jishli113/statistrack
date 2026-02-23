@@ -62,16 +62,36 @@ If your Supabase password contains special characters, you must URL-encode them:
 - Password: `d.tK@3&cR.jdi$#`
 - Encoded: `d.tK%403%26cR.jdi%24%23`
 
-### Step 4: Deploy
+### Step 4: Run Database Migrations (Before First Deployment)
 
-After setting environment variables:
+**IMPORTANT**: Run database migrations BEFORE deploying to Vercel:
+
+```bash
+# Set your DATABASE_URL environment variable
+export DATABASE_URL="postgresql://postgres:[ENCODED-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres"
+
+# Generate Prisma Client and push schema
+npx prisma generate
+npx prisma db push --accept-data-loss
+```
+
+Or use the setup script:
+```bash
+./scripts/setup-db.sh
+```
+
+**Note**: You only need to do this once (or when your schema changes). After the initial setup, Vercel builds will work without database access.
+
+### Step 5: Deploy
+
+After setting environment variables and running migrations:
 
 1. Push your code to GitHub
 2. Vercel will automatically trigger a new deployment
 3. The build will:
-   - Generate Prisma Client
-   - Push schema to database (`prisma db push`)
+   - Generate Prisma Client (via `postinstall` script)
    - Build your Next.js app
+   - **Note**: Database migrations are NOT run during build (they're done manually)
 
 ## Troubleshooting
 
