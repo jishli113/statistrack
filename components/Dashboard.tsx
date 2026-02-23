@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Briefcase, Building2, Calendar, MapPin, Trash2, Edit2, ArrowUpDown, ArrowUp, ArrowDown, Filter } from 'lucide-react'
+import { Plus, Briefcase, Building2, Calendar, MapPin, Trash2, Edit2, ArrowUpDown, ArrowUp, ArrowDown, Filter, Search } from 'lucide-react'
 
 interface DashboardProps {
   onSignOut?: () => void
@@ -90,6 +90,7 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
   const [editingApp, setEditingApp] = useState<JobApplication | null>(null)
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc') // Default: newest first
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [formData, setFormData] = useState({
     company: '',
     position: '',
@@ -208,9 +209,18 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
   const filteredAndSortedApplications = useMemo(() => {
     let filtered = applications
 
+    // Apply search filter (company or position)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      filtered = filtered.filter(app => 
+        app.company.toLowerCase().includes(query) ||
+        app.position.toLowerCase().includes(query)
+      )
+    }
+
     // Apply status filter
     if (statusFilter !== 'all') {
-      filtered = applications.filter(app => app.status === statusFilter)
+      filtered = filtered.filter(app => app.status === statusFilter)
     }
 
     // Apply date sorting
@@ -223,7 +233,7 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
     }
 
     return filtered
-  }, [applications, statusFilter, sortOrder])
+  }, [applications, searchQuery, statusFilter, sortOrder])
 
   const toggleSortOrder = () => {
     if (sortOrder === 'desc') {
@@ -307,16 +317,17 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
         </div>
 
         {/* Actions and Filters */}
-        <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold text-white tracking-tight mb-2">Applications</h2>
-            {showMockData && (
-              <p className="text-sm text-gray-400">
-                Showing sample data • <button onClick={() => { setApplications([]); setShowMockData(false); }} className="text-orange-400 hover:text-orange-300 underline transition-colors">Clear</button>
-              </p>
-            )}
-          </div>
-          <div className="flex gap-3 items-center">
+        <div className="mb-6 space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold text-white tracking-tight mb-2">Applications</h2>
+              {showMockData && (
+                <p className="text-sm text-gray-400">
+                  Showing sample data • <button onClick={() => { setApplications([]); setShowMockData(false); }} className="text-orange-400 hover:text-orange-300 underline transition-colors">Clear</button>
+                </p>
+              )}
+            </div>
+            <div className="flex gap-3 items-center">
             {/* Status Filter */}
             <div className="relative">
               <select
@@ -351,6 +362,27 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
               <Plus className="h-5 w-5" />
               <span className="hidden sm:inline">Add</span>
             </button>
+          </div>
+          </div>
+          
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by company or position..."
+              className="w-full pl-12 pr-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
 
