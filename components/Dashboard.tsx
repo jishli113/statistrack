@@ -18,10 +18,10 @@ interface JobApplication {
 }
 
 const statusColors = {
-  applied: 'bg-blue-100 text-blue-800',
-  interview: 'bg-yellow-100 text-yellow-800',
-  offer: 'bg-green-100 text-green-800',
-  rejected: 'bg-red-100 text-red-800',
+  applied: 'bg-orange-500/20 text-orange-400 border border-orange-500/30',
+  interview: 'bg-orange-500/30 text-orange-300 border border-orange-500/40',
+  offer: 'bg-green-500/20 text-green-400 border border-green-500/30',
+  rejected: 'bg-gray-700/50 text-gray-400 border border-gray-600/50',
 }
 
 const statusLabels = {
@@ -200,20 +200,20 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
   }, {} as Record<string, number>)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-black">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+      <header className="bg-black/80 backdrop-blur-lg border-b border-gray-900 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Job Application Tracker</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Welcome to your dashboard
+            <h1 className="text-3xl font-bold text-white tracking-tight">Job Tracker</h1>
+            <p className="text-sm text-gray-400 mt-1">
+              Professional Application Management
             </p>
           </div>
           {onSignOut && (
             <button
               onClick={onSignOut}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-5 py-2.5 text-sm font-medium text-gray-300 hover:text-white border border-gray-800 rounded-lg hover:bg-gray-900/50 hover:border-orange-500/50 transition-all duration-200"
             >
               Sign Out
             </button>
@@ -221,68 +221,68 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+          <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 p-6 hover:border-orange-500/30 transition-all duration-300">
             <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Briefcase className="h-6 w-6 text-blue-600" />
+              <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
+                <Briefcase className="h-6 w-6 text-orange-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total</p>
-                <p className="text-2xl font-bold text-gray-900">{applications.length}</p>
+                <p className="text-sm font-medium text-gray-400 uppercase tracking-wider">Total</p>
+                <p className="text-3xl font-bold text-white mt-1">{applications.length}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 p-6 hover:border-orange-500/30 transition-all duration-300">
             <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <div className="h-6 w-6 bg-blue-600 rounded"></div>
+              <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
+                <div className="h-6 w-6 bg-orange-400 rounded"></div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Applied</p>
-                <p className="text-2xl font-bold text-gray-900">{statusCounts.applied || 0}</p>
+                <p className="text-sm font-medium text-gray-400 uppercase tracking-wider">Applied</p>
+                <p className="text-3xl font-bold text-white mt-1">{statusCounts.applied || 0}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 p-6 hover:border-orange-500/30 transition-all duration-300">
             <div className="flex items-center">
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <div className="h-6 w-6 bg-yellow-600 rounded"></div>
+              <div className="p-3 bg-orange-500/20 rounded-lg border border-orange-500/30">
+                <div className="h-6 w-6 bg-orange-300 rounded"></div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Interview</p>
-                <p className="text-2xl font-bold text-gray-900">{statusCounts.interview || 0}</p>
+                <p className="text-sm font-medium text-gray-400 uppercase tracking-wider">Interview</p>
+                <p className="text-3xl font-bold text-white mt-1">{statusCounts.interview || 0}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 p-6 hover:border-green-500/30 transition-all duration-300">
             <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <div className="h-6 w-6 bg-green-600 rounded"></div>
+              <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                <div className="h-6 w-6 bg-green-400 rounded"></div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Offers</p>
-                <p className="text-2xl font-bold text-gray-900">{statusCounts.offer || 0}</p>
+                <p className="text-sm font-medium text-gray-400 uppercase tracking-wider">Offers</p>
+                <p className="text-3xl font-bold text-white mt-1">{statusCounts.offer || 0}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="mb-6 flex justify-between items-center">
+        <div className="mb-8 flex justify-between items-center">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Applications</h2>
+            <h2 className="text-2xl font-bold text-white tracking-tight">Applications</h2>
             {showMockData && (
-              <p className="text-sm text-gray-500 mt-1">
-                Showing sample data • <button onClick={() => { setApplications([]); setShowMockData(false); }} className="text-indigo-600 hover:text-indigo-800 underline">Clear</button>
+              <p className="text-sm text-gray-400 mt-2">
+                Showing sample data • <button onClick={() => { setApplications([]); setShowMockData(false); }} className="text-orange-400 hover:text-orange-300 underline transition-colors">Clear</button>
               </p>
             )}
           </div>
           <button
             onClick={openNewModal}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-2 px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-200 font-medium shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30"
           >
             <Plus className="h-5 w-5" />
             Add Application
@@ -291,21 +291,21 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
 
         {/* Applications List */}
         {applications.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No applications yet</h3>
-            <p className="text-gray-600 mb-4">Get started by adding your first job application or view sample data</p>
-            <div className="flex gap-3 justify-center">
+          <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 p-12 text-center">
+            <Briefcase className="h-16 w-16 text-gray-700 mx-auto mb-6" />
+            <h3 className="text-xl font-semibold text-white mb-2">No applications yet</h3>
+            <p className="text-gray-400 mb-6">Get started by adding your first job application or view sample data</p>
+            <div className="flex gap-4 justify-center">
               <button
                 onClick={openNewModal}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-200 font-medium shadow-lg shadow-orange-500/20"
               >
                 <Plus className="h-5 w-5" />
                 Add Application
               </button>
               <button
                 onClick={loadMockData}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 border border-gray-700 hover:border-orange-500/50 transition-all duration-200"
               >
                 <Briefcase className="h-5 w-5" />
                 View Sample Data
@@ -315,43 +315,43 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {applications.map((app) => (
-              <div key={app.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6">
+              <div key={app.id} className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 hover:border-orange-500/30 transition-all duration-300 p-6 group">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">{app.position}</h3>
-                    <div className="flex items-center text-gray-600 mb-2">
-                      <Building2 className="h-4 w-4 mr-1" />
+                    <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-orange-400 transition-colors">{app.position}</h3>
+                    <div className="flex items-center text-gray-400 mb-2">
+                      <Building2 className="h-4 w-4 mr-2 text-orange-500/60" />
                       <span className="text-sm">{app.company}</span>
                     </div>
                     {app.location && (
                       <div className="flex items-center text-gray-500 text-sm mb-2">
-                        <MapPin className="h-4 w-4 mr-1" />
+                        <MapPin className="h-4 w-4 mr-2 text-orange-500/60" />
                         <span>{app.location}</span>
                       </div>
                     )}
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[app.status]}`}>
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColors[app.status]}`}>
                     {statusLabels[app.status]}
                   </span>
                 </div>
                 <div className="flex items-center text-gray-500 text-sm mb-4">
-                  <Calendar className="h-4 w-4 mr-1" />
+                  <Calendar className="h-4 w-4 mr-2 text-orange-500/60" />
                   <span>Applied: {new Date(app.appliedDate).toLocaleDateString()}</span>
                 </div>
                 {app.notes && (
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{app.notes}</p>
+                  <p className="text-sm text-gray-400 mb-4 line-clamp-2">{app.notes}</p>
                 )}
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEdit(app)}
-                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-1"
+                    className="flex-1 px-3 py-2 text-sm border border-gray-700 rounded-lg hover:bg-gray-800 hover:border-orange-500/50 text-gray-300 hover:text-orange-400 flex items-center justify-center gap-1 transition-all duration-200"
                   >
                     <Edit2 className="h-4 w-4" />
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(app.id)}
-                    className="px-3 py-2 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50 flex items-center justify-center"
+                    className="px-3 py-2 text-sm border border-gray-700 rounded-lg hover:bg-gray-800 hover:border-red-500/50 text-gray-400 hover:text-red-400 flex items-center justify-center transition-all duration-200"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -364,14 +364,14 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold mb-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => { setShowModal(false); setEditingApp(null); }}>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl shadow-2xl max-w-md w-full p-8" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-2xl font-bold mb-6 text-white">
               {editingApp ? 'Edit Application' : 'Add New Application'}
             </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Company *
                 </label>
                 <input
@@ -379,11 +379,12 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
                   value={formData.company}
                   onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-3 bg-black/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-white placeholder-gray-500 transition-all"
+                  placeholder="Enter company name"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Position *
                 </label>
                 <input
@@ -391,26 +392,27 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
                   value={formData.position}
                   onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-3 bg-black/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-white placeholder-gray-500 transition-all"
+                  placeholder="Enter position title"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Status *
                 </label>
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as JobApplication['status'] })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-3 bg-black/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-white transition-all"
                 >
-                  <option value="applied">Applied</option>
-                  <option value="interview">Interview</option>
-                  <option value="offer">Offer</option>
-                  <option value="rejected">Rejected</option>
+                  <option value="applied" className="bg-gray-900">Applied</option>
+                  <option value="interview" className="bg-gray-900">Interview</option>
+                  <option value="offer" className="bg-gray-900">Offer</option>
+                  <option value="rejected" className="bg-gray-900">Rejected</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Applied Date *
                 </label>
                 <input
@@ -418,35 +420,37 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
                   value={formData.appliedDate}
                   onChange={(e) => setFormData({ ...formData, appliedDate: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-3 bg-black/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-white transition-all"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Location
                 </label>
                 <input
                   type="text"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-3 bg-black/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-white placeholder-gray-500 transition-all"
+                  placeholder="City, State"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Notes
                 </label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-3 bg-black/50 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-white placeholder-gray-500 transition-all resize-none"
+                  placeholder="Add any notes about this application..."
                 />
               </div>
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  className="flex-1 px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium transition-all duration-200 shadow-lg shadow-orange-500/20"
                 >
                   {editingApp ? 'Update' : 'Add'}
                 </button>
@@ -456,7 +460,7 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
                     setShowModal(false)
                     setEditingApp(null)
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="flex-1 px-6 py-3 border border-gray-700 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-all duration-200"
                 >
                   Cancel
                 </button>
