@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { Plus, Briefcase, Building2, Calendar, MapPin, Trash2, Edit2, ArrowUpDown, ArrowUp, ArrowDown, Filter, Search } from 'lucide-react'
+import SankeyDiagram from './SankeyDiagram'
 
 interface DashboardProps {
   onSignOut?: () => void
@@ -327,6 +328,11 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Sankey Diagram */}
+        <div className="mb-10">
+          <SankeyDiagram applications={filteredAndSortedApplications} />
         </div>
 
         {/* Actions and Filters */}
