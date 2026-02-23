@@ -91,21 +91,18 @@ docker run --name jobtracker-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_
 
 ## Deployment to Vercel
 
+See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for detailed deployment instructions.
+
+**Quick setup:**
 1. Push your code to GitHub
-
 2. Import your repository in Vercel
+3. **Add environment variables in Vercel:**
+   - `DATABASE_URL`: Use Supabase **Session mode** (direct) connection string (for migrations)
+   - `NEXTAUTH_URL`: Your Vercel deployment URL
+   - `NEXTAUTH_SECRET`: Generate with `openssl rand -base64 32`
+4. **Deploy!** The build will automatically sync your database schema and build your app
 
-3. **Add environment variables in Vercel dashboard:**
-   - `DATABASE_URL`: Your Supabase PostgreSQL connection string (from Supabase Settings → Database)
-   - `NEXTAUTH_URL`: Your Vercel deployment URL (e.g., `https://your-app.vercel.app`)
-   - `NEXTAUTH_SECRET`: A secure random string (generate with `openssl rand -base64 32`)
-
-4. **Deploy!** The build will automatically:
-   - Generate Prisma Client
-   - Run database migrations
-   - Build your Next.js app
-
-**Note**: Make sure to use the connection pooling URL from Supabase (with `?pgbouncer=true&connection_limit=1`) for better performance with serverless functions.
+**Important**: For migrations, use the **direct connection** (Session mode) from Supabase, not the pooled connection. See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for details.
 
 ## Project Structure
 
