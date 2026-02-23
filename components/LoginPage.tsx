@@ -1,56 +1,21 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 
-export default function LoginPage() {
+interface LoginPageProps {
+  onSignIn: () => void
+}
+
+export default function LoginPage({ onSignIn }: LoginPageProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-    setLoading(true)
-
-    try {
-      if (isSignUp) {
-        // Sign up logic
-        const res = await fetch('/api/auth/signup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        })
-
-        if (!res.ok) {
-          const data = await res.json()
-          throw new Error(data.error || 'Sign up failed')
-        }
-      }
-
-      // Sign in
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      })
-
-      if (result?.error) {
-        setError('Invalid email or password')
-      } else if (result?.ok) {
-        // Redirect to dashboard after successful sign in
-        router.push('/')
-        router.refresh()
-      }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred')
-    } finally {
-      setLoading(false)
-    }
+    // Just redirect to dashboard when sign in is pressed
+    // No authentication check needed
+    onSignIn()
   }
 
   return (
@@ -62,12 +27,6 @@ export default function LoginPage() {
         <h2 className="text-xl font-semibold text-center mb-6 text-gray-600">
           {isSignUp ? 'Create Account' : 'Sign In'}
         </h2>
-
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -102,10 +61,9 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
           >
-            {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
+            {isSignUp ? 'Sign Up' : 'Sign In'}
           </button>
         </form>
 

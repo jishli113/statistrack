@@ -1,8 +1,11 @@
 'use client'
 
-import { useSession, signOut } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import { Plus, Briefcase, Building2, Calendar, MapPin, Trash2, Edit2 } from 'lucide-react'
+
+interface DashboardProps {
+  onSignOut?: () => void
+}
 
 interface JobApplication {
   id: string
@@ -77,8 +80,7 @@ const mockApplications: JobApplication[] = [
   },
 ]
 
-export default function Dashboard() {
-  const { data: session } = useSession()
+export default function Dashboard({ onSignOut }: DashboardProps = {}) {
   const [applications, setApplications] = useState<JobApplication[]>([])
   const [showMockData, setShowMockData] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -205,15 +207,17 @@ export default function Dashboard() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Job Application Tracker</h1>
             <p className="text-sm text-gray-600 mt-1">
-              Welcome, {session?.user?.email}
+              Welcome to your dashboard
             </p>
           </div>
-          <button
-            onClick={() => signOut()}
-            className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            Sign Out
-          </button>
+          {onSignOut && (
+            <button
+              onClick={onSignOut}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Sign Out
+            </button>
+          )}
         </div>
       </header>
 
