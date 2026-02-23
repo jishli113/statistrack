@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, Briefcase, Building2, Calendar, MapPin, Trash2, Edit2 } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Plus, Briefcase, Building2, Calendar, MapPin, Trash2, Edit2, ArrowUpDown, ArrowUp, ArrowDown, Filter } from 'lucide-react'
 
 interface DashboardProps {
   onSignOut?: () => void
@@ -80,11 +80,16 @@ const mockApplications: JobApplication[] = [
   },
 ]
 
+type SortOrder = 'asc' | 'desc' | null
+type StatusFilter = 'all' | JobApplication['status']
+
 export default function Dashboard({ onSignOut }: DashboardProps = {}) {
   const [applications, setApplications] = useState<JobApplication[]>([])
   const [showMockData, setShowMockData] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [editingApp, setEditingApp] = useState<JobApplication | null>(null)
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc') // Default: newest first
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [formData, setFormData] = useState({
     company: '',
     position: '',
@@ -199,6 +204,37 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
     return acc
   }, {} as Record<string, number>)
 
+  // Filter and sort applications
+  const filteredAndSortedApplications = useMemo(() => {
+    let filtered = applications
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = applications.filter(app => app.status === statusFilter)
+    }
+
+    // Apply date sorting
+    if (sortOrder) {
+      filtered = [...filtered].sort((a, b) => {
+        const dateA = new Date(a.appliedDate).getTime()
+        const dateB = new Date(b.appliedDate).getTime()
+        return sortOrder === 'asc' ? dateA - dateB : dateB - dateA
+      })
+    }
+
+    return filtered
+  }, [applications, statusFilter, sortOrder])
+
+  const toggleSortOrder = () => {
+    if (sortOrder === 'desc') {
+      setSortOrder('asc')
+    } else if (sortOrder === 'asc') {
+      setSortOrder(null)
+    } else {
+      setSortOrder('desc')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-black">
       {/* Header */}
@@ -270,26 +306,55 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold text-white tracking-tight">Applications</h2>
+        {/* Actions and Filters */}
+        <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-white tracking-tight mb-2">Applications</h2>
             {showMockData && (
-              <p className="text-sm text-gray-400 mt-2">
+              <p className="text-sm text-gray-400">
                 Showing sample data • <button onClick={() => { setApplications([]); setShowMockData(false); }} className="text-orange-400 hover:text-orange-300 underline transition-colors">Clear</button>
               </p>
             )}
           </div>
-          <button
-            onClick={openNewModal}
-            className="flex items-center gap-2 px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-200 font-medium shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30"
-          >
-            <Plus className="h-5 w-5" />
-            Add Application
-          </button>
+          <div className="flex gap-3 items-center">
+            {/* Status Filter */}
+            <div className="relative">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                className="px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 appearance-none cursor-pointer pr-8"
+              >
+                <option value="all" className="bg-gray-900">All Statuses</option>
+                <option value="applied" className="bg-gray-900">Applied</option>
+                <option value="interview" className="bg-gray-900">Interview</option>
+                <option value="offer" className="bg-gray-900">Offer</option>
+                <option value="rejected" className="bg-gray-900">Rejected</option>
+              </select>
+              <Filter className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            </div>
+            {/* Sort Button */}
+            <button
+              onClick={toggleSortOrder}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg hover:bg-gray-800 hover:border-orange-500/50 text-white text-sm transition-all duration-200"
+              title="Sort by date"
+            >
+              {sortOrder === 'desc' && <ArrowDown className="h-4 w-4 text-orange-400" />}
+              {sortOrder === 'asc' && <ArrowUp className="h-4 w-4 text-orange-400" />}
+              {sortOrder === null && <ArrowUpDown className="h-4 w-4 text-gray-400" />}
+              <span className="hidden sm:inline">Date</span>
+            </button>
+            {/* Add Button */}
+            <button
+              onClick={openNewModal}
+              className="flex items-center gap-2 px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-200 font-medium shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30"
+            >
+              <Plus className="h-5 w-5" />
+              <span className="hidden sm:inline">Add</span>
+            </button>
+          </div>
         </div>
 
-        {/* Applications List */}
+        {/* Applications Table */}
         {applications.length === 0 ? (
           <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 p-12 text-center">
             <Briefcase className="h-16 w-16 text-gray-700 mx-auto mb-6" />
@@ -313,51 +378,98 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {applications.map((app) => (
-              <div key={app.id} className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 hover:border-orange-500/30 transition-all duration-300 p-6 group">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-orange-400 transition-colors">{app.position}</h3>
-                    <div className="flex items-center text-gray-400 mb-2">
-                      <Building2 className="h-4 w-4 mr-2 text-orange-500/60" />
-                      <span className="text-sm">{app.company}</span>
-                    </div>
-                    {app.location && (
-                      <div className="flex items-center text-gray-500 text-sm mb-2">
-                        <MapPin className="h-4 w-4 mr-2 text-orange-500/60" />
-                        <span>{app.location}</span>
-                      </div>
-                    )}
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColors[app.status]}`}>
-                    {statusLabels[app.status]}
-                  </span>
-                </div>
-                <div className="flex items-center text-gray-500 text-sm mb-4">
-                  <Calendar className="h-4 w-4 mr-2 text-orange-500/60" />
-                  <span>Applied: {new Date(app.appliedDate).toLocaleDateString()}</span>
-                </div>
-                {app.notes && (
-                  <p className="text-sm text-gray-400 mb-4 line-clamp-2">{app.notes}</p>
-                )}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEdit(app)}
-                    className="flex-1 px-3 py-2 text-sm border border-gray-700 rounded-lg hover:bg-gray-800 hover:border-orange-500/50 text-gray-300 hover:text-orange-400 flex items-center justify-center gap-1 transition-all duration-200"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(app.id)}
-                    className="px-3 py-2 text-sm border border-gray-700 rounded-lg hover:bg-gray-800 hover:border-red-500/50 text-gray-400 hover:text-red-400 flex items-center justify-center transition-all duration-200"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
+          <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-900/80 border-b border-gray-800">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Job ID</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Company</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Position</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      <button
+                        onClick={toggleSortOrder}
+                        className="flex items-center gap-1 hover:text-orange-400 transition-colors"
+                      >
+                        Applied Date
+                        {sortOrder === 'desc' && <ArrowDown className="h-3 w-3 text-orange-400" />}
+                        {sortOrder === 'asc' && <ArrowUp className="h-3 w-3 text-orange-400" />}
+                        {sortOrder === null && <ArrowUpDown className="h-3 w-3" />}
+                      </button>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Location</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Notes</th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800">
+                  {filteredAndSortedApplications.map((app, index) => (
+                    <tr key={app.id} className="hover:bg-gray-900/50 transition-colors group">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-gray-500 font-mono">{app.id.slice(0, 8)}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <Building2 className="h-4 w-4 mr-2 text-orange-500/60" />
+                          <span className="text-sm font-medium text-white">{app.company}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-gray-300">{app.position}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${statusColors[app.status]}`}>
+                          {statusLabels[app.status]}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-2 text-orange-500/60" />
+                          <span className="text-sm text-gray-400">{new Date(app.appliedDate).toLocaleDateString()}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {app.location ? (
+                          <div className="flex items-center">
+                            <MapPin className="h-4 w-4 mr-2 text-orange-500/60" />
+                            <span className="text-sm text-gray-400">{app.location}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-600">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-gray-400 line-clamp-1 max-w-xs">{app.notes || '—'}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleEdit(app)}
+                            className="p-2 text-gray-400 hover:text-orange-400 hover:bg-gray-800 rounded-lg transition-all duration-200"
+                            title="Edit"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(app.id)}
+                            className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-800 rounded-lg transition-all duration-200"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {filteredAndSortedApplications.length === 0 && (
+              <div className="px-6 py-12 text-center">
+                <p className="text-gray-400">No applications match the selected filter.</p>
               </div>
-            ))}
+            )}
           </div>
         )}
       </main>
