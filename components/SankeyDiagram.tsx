@@ -38,63 +38,81 @@ export default function SankeyDiagram({ applications }: SankeyDiagramProps) {
       return acc
     }, {} as Record<string, number>)
 
-    // Create nodes
+    const total = applications.length
+    const appliedCount = total // All applications start as applied
+    const interviewCount = statusCounts.interview || 0
+    const offerCount = statusCounts.offer || 0
+    const rejectedCount = statusCounts.rejected || 0
+    const stillApplied = statusCounts.applied || 0
+
+    // Create nodes in order: Applied, Interview, Offer, Rejected
+    // Note: Interview node shows count of those currently in interview (not including offers)
     const nodeList: SankeyNode[] = [
-      { name: 'Applied', value: statusCounts.applied || 0, color: statusConfig.applied.color },
-      { name: 'Interview', value: statusCounts.interview || 0, color: statusConfig.interview.color },
-      { name: 'Offer', value: statusCounts.offer || 0, color: statusConfig.offer.color },
-      { name: 'Rejected', value: statusCounts.rejected || 0, color: statusConfig.rejected.color },
+      { name: 'Applied', value: appliedCount, color: statusConfig.applied.color },
+      { name: 'Interview', value: interviewCount + offerCount, color: statusConfig.interview.color }, // Include offers since they went through interview
+      { name: 'Offer', value: offerCount, color: statusConfig.offer.color },
+      { name: 'Rejected', value: rejectedCount, color: statusConfig.rejected.color },
     ]
 
-    // Create links (flow from Applied to other statuses)
+    // Create links with proper flow
     const linkList: SankeyLink[] = []
     const appliedIndex = 0
     const interviewIndex = 1
     const offerIndex = 2
     const rejectedIndex = 3
 
-    if (statusCounts.applied) {
-      // Applied -> Interview
-      if (statusCounts.interview) {
-        linkList.push({
-          source: appliedIndex,
-          target: interviewIndex,
-          value: Math.min(statusCounts.applied, statusCounts.interview),
-        })
-      }
-      // Applied -> Offer (direct offers without interview)
-      if (statusCounts.offer && !statusCounts.interview) {
-        linkList.push({
-          source: appliedIndex,
-          target: offerIndex,
-          value: statusCounts.offer,
-        })
-      }
-      // Applied -> Rejected
-      if (statusCounts.rejected) {
-        linkList.push({
-          source: appliedIndex,
-          target: rejectedIndex,
-          value: statusCounts.rejected,
-        })
-      }
-    }
-
-    // Interview -> Offer
-    if (statusCounts.interview && statusCounts.offer) {
+    // Calculate flows
+    // All interviews and offers came from applied (since offers require interviews)
+    const totalAdvanced = interviewCount + offerCount
+    
+    // Applied -> Interview (all that got interviews, including those who got offers)
+    if (interviewCount > 0 || offerCount > 0) {
       linkList.push({
-        source: interviewIndex,
-        target: offerIndex,
-        value: statusCounts.offer,
+        source: appliedIndex,
+        target: interviewIndex,
+        value: interviewCount + offerCount, // All interviews + offers (since offers require interviews)
       })
     }
 
-    // Interview -> Rejected
-    if (statusCounts.interview && statusCounts.rejected) {
+    // Interview -> Offer (all offers come from interviews)
+    if (offerCount > 0) {
+      linkList.push({
+        source: interviewIndex,
+        target: offerIndex,
+        value: offerCount,
+      })
+    }
+
+    // Applied -> Rejected (direct rejections without interview)
+    // Rejections that didn't go through interview = total rejected - (interviewCount - offerCount)
+    const directRejections = Math.max(0, rejectedCount - Math.max(0, interviewCount - offerCount))
+    if (directRejections > 0) {
+      linkList.push({
+        source: appliedIndex,
+        target: rejectedIndex,
+        value: directRejections,
+      })
+    }
+
+    // Interview -> Rejected (rejections after interview but before offer)
+    // These are interviews that didn't lead to offers
+    const interviewRejections = Math.max(0, interviewCount - offerCount)
+    if (interviewRejections > 0) {
       linkList.push({
         source: interviewIndex,
         target: rejectedIndex,
-        value: statusCounts.rejected,
+        value: interviewRejections,
+      })
+    }
+
+    // Offer -> Rejected (rejections after offer - declined offers)
+    // Remaining rejections after accounting for direct and interview rejections
+    const offerRejections = Math.max(0, rejectedCount - directRejections - interviewRejections)
+    if (offerRejections > 0 && offerCount > 0) {
+      linkList.push({
+        source: offerIndex,
+        target: rejectedIndex,
+        value: offerRejections,
       })
     }
 
@@ -107,20 +125,42 @@ export default function SankeyDiagram({ applications }: SankeyDiagramProps) {
   const nodeHeight = 40
   const nodeSpacing = 20
   const nodeWidth = 120
-  const svgHeight = nodes.length * (nodeHeight + nodeSpacing) + nodeSpacing
-  const svgWidth = 600
+  const svgWidth = 800
+  const svgHeight = 300
   const startX = 50
+  const midX = svgWidth / 2
   const endX = svgWidth - 50
+  const topY = 80
+  const bottomY = 220
 
   // Calculate node positions
+  // Applied, Interview, Offer on top row, Rejected on bottom
   const nodePositions = nodes.map((node, index) => {
-    const y = nodeSpacing + index * (nodeHeight + nodeSpacing)
     const maxValue = Math.max(...nodes.map(n => n.value), 1)
     const height = node.value > 0 ? Math.max((node.value / maxValue) * nodeHeight, 20) : 0
     
+    let x, y
+    if (index === 0) {
+      // Applied - left
+      x = startX
+      y = topY + (nodeHeight - height) / 2
+    } else if (index === 1) {
+      // Interview - middle
+      x = midX - nodeWidth / 2
+      y = topY + (nodeHeight - height) / 2
+    } else if (index === 2) {
+      // Offer - right
+      x = endX - nodeWidth
+      y = topY + (nodeHeight - height) / 2
+    } else {
+      // Rejected - bottom center
+      x = midX - nodeWidth / 2
+      y = bottomY + (nodeHeight - height) / 2
+    }
+    
     return {
-      x: startX,
-      y: y + (nodeHeight - height) / 2,
+      x,
+      y,
       width: nodeWidth,
       height,
       value: node.value,
@@ -138,13 +178,24 @@ export default function SankeyDiagram({ applications }: SankeyDiagramProps) {
 
     const sourceY = source.y + source.height / 2
     const targetY = target.y + target.height / 2
+    const sourceX = source.x + source.width
+    const targetX = target.x
     const maxValue = Math.max(...nodes.map(n => n.value), 1)
-    const linkWidth = (link.value / maxValue) * 20
+    const linkWidth = Math.max((link.value / maxValue) * 15, 2)
 
-    // Create curved path
-    const midX = (startX + endX) / 2
-    const path = `M ${startX + nodeWidth} ${sourceY} 
-                  C ${midX} ${sourceY}, ${midX} ${targetY}, ${endX} ${targetY}`
+    // Create curved path - horizontal flow for top row, vertical for rejections
+    let path = ''
+    if (link.target === rejectedIndex) {
+      // Flow to rejected (bottom) - curve down
+      const controlY = sourceY + (targetY - sourceY) / 2
+      path = `M ${sourceX} ${sourceY} 
+              C ${sourceX + 50} ${sourceY}, ${targetX - 50} ${targetY}, ${targetX} ${targetY}`
+    } else {
+      // Horizontal flow (Applied -> Interview -> Offer)
+      const controlX = sourceX + (targetX - sourceX) / 2
+      path = `M ${sourceX} ${sourceY} 
+              C ${controlX} ${sourceY}, ${controlX} ${targetY}, ${targetX} ${targetY}`
+    }
 
     return {
       path,
