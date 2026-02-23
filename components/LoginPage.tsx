@@ -1,21 +1,34 @@
 'use client'
 
 import { useState } from 'react'
+import { signIn } from 'next-auth/react'
 
 interface LoginPageProps {
-  onSignIn: () => void
+  signIn: (credentials: { email: string; password: string }) => void
 }
 
-export default function LoginPage({ onSignIn }: LoginPageProps) {
+export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Just redirect to dashboard when sign in is pressed
-    // No authentication check needed
-    onSignIn()
+    if (isSignUp) {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ email, password }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        console.log(data)
+      }
+      else {
+        console.error('Signup failed')
+      }
+    }
+    const result = await signIn('credentials', {email, password})
   }
 
   return (

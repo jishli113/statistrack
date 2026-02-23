@@ -1,25 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useSession } from 'next-auth/react'
 import LoginPage from '@/components/LoginPage'
 import Dashboard from '@/components/Dashboard'
 
 export default function Home() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-
-  // When user clicks sign in, just show the dashboard (no auth check)
-  const handleSignIn = () => {
-    setIsAuthenticated(true)
+  const { data: session, status } = useSession()
+  
+  if (status === 'loading') {
+    return <div>Loading...</div>
   }
-
-  // Sign out just goes back to login page
-  const handleSignOut = () => {
-    setIsAuthenticated(false)
+  
+  if (!session) {
+    return <LoginPage />  // No onSignIn prop needed!
   }
-
-  if (!isAuthenticated) {
-    return <LoginPage onSignIn={handleSignIn} />
-  }
-
-  return <Dashboard onSignOut={handleSignOut} />
+  
+  return <Dashboard />
 }
