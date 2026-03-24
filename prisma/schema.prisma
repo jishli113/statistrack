@@ -18,6 +18,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
   sessions      Session[]
+  gmailToken    String?
   applications  JobApplication[]
 }
 
