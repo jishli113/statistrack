@@ -4,7 +4,6 @@ function decodeBase64Url(data: string): string {
   return Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')
 }
 
-/** Recursively collect decoded text from Gmail message parts (plain + html). */
 function textFromParts(part: gmail_v1.Schema$MessagePart | undefined): string {
   if (!part) return ''
   const mime = part.mimeType ?? ''
@@ -19,7 +18,6 @@ function textFromParts(part: gmail_v1.Schema$MessagePart | undefined): string {
   return ''
 }
 
-/** Subject + body text for keyword scoring. */
 export function getGmailMessageSearchText(msg: gmail_v1.Schema$Message): string {
   const headers = msg.payload?.headers ?? []
   const subject =
