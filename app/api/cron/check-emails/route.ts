@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     return await dequeue();
 }
 
-export async function dequeue() {
+async function dequeue() {
     try {
         const queue = process.env.RABBITMQ_GMAIL_API_QUEUE!;
         let tokenTrack = 0;
