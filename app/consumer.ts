@@ -5,10 +5,11 @@ import { sumKeywordMatches } from '@/lib/emailTriggerWords'
 import { getGmailMessageSearchText } from '@/lib/gmailMessageText'
 import { claudeResponse } from '@/app/evalutation'
 
-const consumeMessage = async (queue: string) => {
+export const consumeMessage = async (queue: string) => {
   const { channel } = await connectRabbitMQ()
   await channel.assertQueue(queue, { durable: true })
   channel.consume(queue, async (message) => {
+    console.log("IN!")
     if (!message) return
     const messageData = JSON.parse(message.content.toString())
     const userId = messageData.userId as string
@@ -21,7 +22,10 @@ const consumeMessage = async (queue: string) => {
         process.env.GOOGLE_CLIENT_ID!,
         process.env.GOOGLE_CLIENT_SECRET!
       )
-      if (!account || !account.refresh_token) return
+      if (!account || !account.refresh_token){
+        channel.ack(message)
+        return
+      }
       oauth2.setCredentials({
         refresh_token: account.refresh_token,
       })
@@ -48,7 +52,7 @@ const consumeMessage = async (queue: string) => {
             const score = sumKeywordMatches(text)
             // proceed to LLM when score crosses threshold
             if (score >= 6) {
-                const response = await claudeResponse()
+                const response = await claudeResponse(text.toString())
                 const textBlock = response.content.find((b) => b.type === 'text')
                 if (!textBlock || textBlock.type !== 'text') {
                   console.error('No text block in Claude response', response.content)
