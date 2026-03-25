@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import {connect} from "amqplib"
+import { NextResponse } from 'next/server'
 import {connectRabbitMQ} from "@/app/connection"
 
 const sendMessage = async(queue:string, message:string) => {
@@ -10,6 +10,9 @@ const sendMessage = async(queue:string, message:string) => {
 }
 
 export async function POST(request: Request) {
+    if (request.headers.get('Authorization') !== process.env.CRON_SECRET) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     try {
         const queue = process.env.RABBITMQ_GMAIL_API_QUEUE!;
         let tokenTrack = 0;
@@ -36,9 +39,11 @@ export async function POST(request: Request) {
                 break;
             }
         }
+        return NextResponse.json({ ok: true }, { status: 200 })
     }
     catch (error) {
         console.error("Error in check-emails", error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 }
 
