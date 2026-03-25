@@ -97,7 +97,7 @@ const consumeMessage = async (queue: string) => {
                           location: parsedData.location
                             ? String(parsedData.location)
                             : null,
-                          status: 'Applied',
+                          status: parsedData.type,
                           appliedDate,
                           externalJobId: parsedData.job_id
                             ? String(parsedData.job_id)
@@ -108,7 +108,7 @@ const consumeMessage = async (queue: string) => {
                       await prisma.jobApplication.update({
                         where: { id: candidates[0].id },
                         data: {
-                          status: 'applied',
+                          status: parsedData.type,
                           appliedDate: new Date(),
                         },
                       })
