@@ -1,16 +1,40 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 
 export default function LoginPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
   
   useEffect(() => {
     console.log("login page loaded")
   }, [])
+
+  /** App Router: redirect:true often lands before SessionProvider sees the cookie — refresh RSC + client session. */
+  const signInWithCredentials = async () => {
+    setAuthError(null)
+    const result = await signIn('credentials', {
+      email,
+      password,
+      redirect: false,
+      callbackUrl: '/',
+    })
+    if (result?.error) {
+      console.error('Sign in failed:', result.error)
+      setAuthError(
+        result.error === 'CredentialsSignin'
+          ? 'Sign-in failed. Use the same email/password as signup, or use Google/GitHub if you created the account with OAuth.'
+          : result.error
+      )
+      return
+    }
+    if (result?.ok) router.refresh()
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,14 +47,13 @@ export default function LoginPage() {
       if (res.ok) {
         const data = await res.json()
         console.log(data)
-        // After successful signup, sign in
-        await signIn('credentials', { email, password, redirect: true })
+        await signInWithCredentials()
       }
       else {
         console.error('Signup failed')
       }
     } else {
-      await signIn('credentials', { email, password, redirect: true })
+      await signInWithCredentials()
     }
   }
 
@@ -52,6 +75,12 @@ export default function LoginPage() {
         <h2 className="text-xl font-semibold text-center mb-8 text-white">
           {isSignUp ? 'Create Account' : 'Sign In'}
         </h2>
+
+        {authError && (
+          <p className="mb-4 rounded-lg border border-red-500/50 bg-red-950/40 px-3 py-2 text-center text-sm text-red-200">
+            {authError}
+          </p>
+        )}
 
         {/* OAuth Buttons */}
         <div className="space-y-3 mb-6">

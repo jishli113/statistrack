@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "db:push": "prisma db push --accept-data-loss",
-    "db:migrate": "prisma migrate deploy"
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "node scripts/migrate-dev-with-log.mjs --"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
