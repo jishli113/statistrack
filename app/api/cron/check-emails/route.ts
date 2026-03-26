@@ -8,11 +8,14 @@ const sendMessage = async(queue:string, message:string) => {
     channel.sendToQueue(queue, Buffer.from(message));
     console.log(`Message sent to ${queue}: ${message}`);
 }
-
-export async function POST(request: Request) {
-    if (request.headers.get('Authorization') !== process.env.CRON_SECRET) {
+export async function GET(request: Request) {
+    if (request.headers.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    return await dequeue();
+}
+
+async function dequeue() {
     try {
         const queue = process.env.RABBITMQ_GMAIL_API_QUEUE!;
         let tokenTrack = 0;
@@ -27,14 +30,12 @@ export async function POST(request: Request) {
             });
             tokenTrack += 100;
             //logic for enqueueing tasks/calling gmail api
-            const promises = users.map(user => {
+            const promises = await Promise.all(users.map(user => {
                 const payload = JSON.stringify({
-                    userId: user.id,
-                    gmailToken: user.gmailToken
+                    userId: user.id
                 });
-                sendMessage(queue, payload)
-            });
-            await Promise.all(promises);
+                return sendMessage(queue, payload)
+            }));
             if (users.length < 100) {
                 break;
             }

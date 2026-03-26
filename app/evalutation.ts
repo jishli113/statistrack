@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 const anthropicClient = new Anthropic({});
-export const claudeResponse = async () => {return anthropicClient.messages.create({
+export const claudeResponse = async (email: string) => {return anthropicClient.messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens:Number(process.env.MAX_TOKENS!),
     messages: [
@@ -10,7 +10,7 @@ export const claudeResponse = async () => {return anthropicClient.messages.creat
             content: [
                 {
                     type: "text",
-                    text: process.env.EMAIL_PARSE_PROMPT!
+                    text: process.env.EMAIL_PARSE_PROMPT!.replace('{email}', email)
                 }
             ]
         }
