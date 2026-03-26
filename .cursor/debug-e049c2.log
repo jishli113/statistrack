@@ -1,0 +1,12 @@
+{"sessionId":"e049c2","location":"worker.js:startup","message":"worker env snapshot","data":{"hasRabbitUrl":true,"hypothesisId":"C"},"timestamp":1774475082774,"runId":"pre-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RABBITMQ_URL scheme before connect","data":{"protocol":"amqp:","hasUrl":true,"hypothesisId":"A"},"timestamp":1774475082774,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RabbitMQ connect ok","data":{"ok":true,"hypothesisId":"A"},"timestamp":1774475082899,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"worker.js:startup","message":"worker env snapshot","data":{"hasRabbitUrl":true,"hypothesisId":"C"},"timestamp":1774475203594,"runId":"pre-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RABBITMQ_URL scheme before connect","data":{"protocol":"amqp:","hasUrl":true,"hypothesisId":"A"},"timestamp":1774475203595,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RabbitMQ connect ok","data":{"ok":true,"hypothesisId":"A"},"timestamp":1774475203620,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"worker.js:startup","message":"worker env snapshot","data":{"hasRabbitUrl":true,"hypothesisId":"C"},"timestamp":1774475244953,"runId":"pre-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RABBITMQ_URL scheme before connect","data":{"protocol":"amqp:","hasUrl":true,"hypothesisId":"A"},"timestamp":1774475244954,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RabbitMQ connect ok","data":{"ok":true,"hypothesisId":"A"},"timestamp":1774475244988,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"worker.js:startup","message":"worker env snapshot","data":{"hasRabbitUrl":true,"hypothesisId":"C"},"timestamp":1774475245029,"runId":"pre-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RABBITMQ_URL scheme before connect","data":{"protocol":"amqp:","hasUrl":true,"hypothesisId":"A"},"timestamp":1774475245030,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RabbitMQ connect ok","data":{"ok":true,"hypothesisId":"A"},"timestamp":1774475245050,"runId":"post-fix"}

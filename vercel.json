@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
   "crons": [{
-    "path": "/api/cron",
+    "path": "/api/cron/check-emails",
     "schedule": "0 0 * * *"
   }]
 }
