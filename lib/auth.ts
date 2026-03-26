@@ -4,6 +4,7 @@ import GoogleProvider from 'next-auth/providers/google'
 import GitHubProvider from 'next-auth/providers/github'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from './prisma'
+import { normalizeEmail } from './email'
 import bcrypt from 'bcryptjs'
 
 // Ensure prisma is defined and properly initialized before creating adapter
@@ -47,16 +48,27 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) {
           return null
         }
-        console.log("credentials", credentials)
         if (!prisma) {
           console.error('❌ Prisma is undefined in authorize function')
           return null
         }
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+        const email = normalizeEmail(credentials.email)
+        const user = await prisma.user.findFirst({
+          where: { email: { equals: email, mode: 'insensitive' } },
         })
 
-        if (!user || !user.password || !user.email) {
+        if (!user?.email) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[auth] credentials: no user for email')
+          }
+          return null
+        }
+        if (!user.password) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(
+              '[auth] credentials: user has no password (OAuth-only account — use Google/GitHub)'
+            )
+          }
           return null
         }
 
@@ -66,6 +78,9 @@ export const authOptions: NextAuthOptions = {
         )
 
         if (!isPasswordValid) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[auth] credentials: password mismatch')
+          }
           return null
         }
 
@@ -174,6 +189,7 @@ export const authOptions: NextAuthOptions = {
       
       // On sign-in (when user and account are present)
       if (user) {
+        token.sub = user.id
         token.id = user.id
         token.email = user.email
         console.log('✅ Added user ID to token:', user.id)
