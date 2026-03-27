@@ -8,14 +8,11 @@ const sendMessage = async(queue:string, message:string) => {
     channel.sendToQueue(queue, Buffer.from(message));
     console.log(`Message sent to ${queue}: ${message}`);
 }
-export async function GET(request: Request) {
+
+async function POST(request: Request) {
     if (request.headers.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    return await dequeue();
-}
-
-async function dequeue() {
     try {
         const queue = process.env.RABBITMQ_GMAIL_API_QUEUE!;
         let tokenTrack = 0;
