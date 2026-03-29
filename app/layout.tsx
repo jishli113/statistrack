@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Manrope } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/components/AuthProvider'
+import statisTrackIcon from '@/static/statis_track.png'
 
 const manrope = Manrope({ 
   subsets: ['latin'],
@@ -11,8 +12,11 @@ const manrope = Manrope({
 })
 
 export const metadata: Metadata = {
-  title: 'Job Application Tracker',
-  description: 'Track your job applications and their status',
+  title: 'StatisTrack',
+  description: 'Track your job applications and their status with StatisTrack',
+  icons: {
+    icon: statisTrackIcon.src,
+  },
 }
 
 export default function RootLayout({

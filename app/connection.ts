@@ -5,7 +5,6 @@ import { Ratelimit } from "@upstash/ratelimit"
 const upstashUrl = process.env.UPSTASH_REDIS_REST_URL
 const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN
 
-// #region agent log
 fetch('http://127.0.0.1:7645/ingest/dd7520f7-f070-4459-993e-c235e8ec3533', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '22dd7a' },

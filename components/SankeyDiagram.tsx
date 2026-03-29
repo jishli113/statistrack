@@ -9,6 +9,8 @@ interface JobApplication {
 
 interface SankeyDiagramProps {
   applications: JobApplication[]
+  /** Tighter layout for viewport-constrained dashboards */
+  compact?: boolean
 }
 
 interface SankeyNode {
@@ -30,7 +32,7 @@ const statusConfig = {
   rejected: { color: '#6b7280', label: 'Rejected' },
 }
 
-export default function SankeyDiagram({ applications }: SankeyDiagramProps) {
+export default function SankeyDiagram({ applications, compact = false }: SankeyDiagramProps) {
   // Node indices (Applied, Interview, Offer, Rejected)
   const appliedIndex = 0
   const interviewIndex = 1
@@ -107,16 +109,16 @@ export default function SankeyDiagram({ applications }: SankeyDiagramProps) {
   const totalApplications = applications.length
   if (totalApplications === 0) return null
 
-  const nodeHeight = 40
+  const nodeHeight = compact ? 32 : 40
   const nodeSpacing = 20
-  const nodeWidth = 120
-  const svgWidth = 800
-  const svgHeight = 300
-  const startX = 50
+  const nodeWidth = compact ? 100 : 120
+  const svgWidth = compact ? 640 : 800
+  const svgHeight = compact ? 220 : 300
+  const startX = compact ? 36 : 50
   const midX = svgWidth / 2
-  const endX = svgWidth - 50
-  const topY = 80
-  const bottomY = 220
+  const endX = svgWidth - (compact ? 36 : 50)
+  const topY = compact ? 40 : 80
+  const bottomY = compact ? 148 : 220
 
   // Calculate node positions
   // Applied, Interview, Offer on top row, Rejected on bottom
@@ -198,8 +200,12 @@ export default function SankeyDiagram({ applications }: SankeyDiagramProps) {
   }>
 
   return (
-    <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 p-6">
-      <h3 className="text-lg font-semibold text-white mb-4">Application Flow</h3>
+    <div
+      className={`min-w-0 max-w-full bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 ${compact ? 'p-3' : 'p-6'}`}
+    >
+      <h3 className={`font-semibold text-white ${compact ? 'text-sm mb-2' : 'text-lg mb-4'}`}>
+        Application Flow
+      </h3>
       <div className="overflow-x-auto">
         <svg width={svgWidth} height={svgHeight} className="w-full">
           {/* Render links */}
@@ -250,7 +256,7 @@ export default function SankeyDiagram({ applications }: SankeyDiagramProps) {
           ))}
         </svg>
       </div>
-      <p className="text-xs text-gray-400 mt-4 text-center">
+      <p className={`text-xs text-gray-400 text-center ${compact ? 'mt-2' : 'mt-4'}`}>
         Total: {totalApplications} application{totalApplications !== 1 ? 's' : ''}
       </p>
     </div>

@@ -1,13 +1,13 @@
 # Supabase Setup Guide
 
-This guide will help you set up Supabase for your Job Application Tracker.
+This guide will help you set up Supabase for StatisTrack.
 
 ## Step 1: Create a Supabase Project
 
 1. Go to [supabase.com](https://supabase.com) and sign up or log in
 2. Click **"New Project"**
 3. Fill in:
-   - **Name**: Your project name (e.g., "job-tracker")
+   - **Name**: Your project name (e.g., "statistrack")
    - **Database Password**: Choose a strong password (save this!)
    - **Region**: Choose the closest region to your users
 4. Click **"Create new project"** and wait for it to be ready (~2 minutes)
