@@ -17,6 +17,43 @@ interface JobApplication {
   location?: string
   notes?: string
 }
+function dbStatusToUi(db: string): JobApplication['status'] {
+  switch (db) {
+    case 'Applied':
+      return 'applied'
+    case 'Interview':
+      return 'interview'
+    case 'Offer':
+      return 'offer'
+    case 'Rejected_Direct':
+      return 'rejected'
+    case 'Rejected_After_Interview':
+      return 'rejected_after_interview'
+    default:
+      return 'applied'
+  }
+}
+function uiStatusToDb(ui: JobApplication['status']): string {
+  switch (ui) {
+    case 'applied':
+      return 'Applied'
+    case 'interview':
+      return 'Interview'
+    case 'offer':
+      return 'Offer'
+    case 'rejected':
+      return 'Rejected_Direct'
+    case 'rejected_after_interview':
+      return 'Rejected_After_Interview'
+    default:
+      return 'Applied'
+  }
+}
+
+function toDateInputValue(isoOrDate: string): string {
+  if (!isoOrDate) return ''
+  return isoOrDate.includes('T') ? isoOrDate.split('T')[0] : isoOrDate.slice(0, 10)
+}
 
 const statusColors = {
   applied: 'bg-orange-500/20 text-orange-400 border border-orange-500/30',
@@ -34,79 +71,11 @@ const statusLabels = {
   rejected_after_interview: 'Rejected (After Interview)',
 }
 
-// Mock data for demonstration
-const companies = [
-  'Google', 'Microsoft', 'Apple', 'Amazon', 'Meta', 'Netflix', 'Uber', 'Airbnb', 'Stripe', 'Palantir',
-  'Tesla', 'Nvidia', 'Adobe', 'Salesforce', 'Oracle', 'IBM', 'Intel', 'Cisco', 'VMware', 'Splunk',
-  'Databricks', 'Snowflake', 'MongoDB', 'Elastic', 'GitHub', 'GitLab', 'Atlassian', 'Zoom', 'Slack', 'Discord',
-  'Spotify', 'Pinterest', 'Snapchat', 'TikTok', 'ByteDance', 'LinkedIn', 'Twitter', 'Reddit', 'Twitch', 'Roblox',
-  'Coinbase', 'Square', 'PayPal', 'Visa', 'Mastercard', 'Goldman Sachs', 'JPMorgan', 'Morgan Stanley', 'Bloomberg', 'Two Sigma'
-]
-
-const positions = [
-  'Software Engineer', 'Full Stack Developer', 'Frontend Engineer', 'Backend Engineer', 'DevOps Engineer',
-  'Data Engineer', 'Data Scientist', 'Machine Learning Engineer', 'iOS Developer', 'Android Developer',
-  'Cloud Solutions Architect', 'Security Engineer', 'QA Engineer', 'Product Manager', 'Technical Program Manager',
-  'Site Reliability Engineer', 'Systems Engineer', 'Database Administrator', 'Network Engineer', 'Cybersecurity Analyst',
-  'UI/UX Designer', 'Product Designer', 'Research Scientist', 'Applied Scientist', 'Algorithm Engineer',
-  'Platform Engineer', 'Infrastructure Engineer', 'Solutions Architect', 'Technical Lead', 'Engineering Manager'
-]
-
-const locations = [
-  'San Francisco, CA', 'Mountain View, CA', 'Palo Alto, CA', 'Cupertino, CA', 'Menlo Park, CA',
-  'Seattle, WA', 'Bellevue, WA', 'Redmond, WA', 'New York, NY', 'Brooklyn, NY',
-  'Boston, MA', 'Cambridge, MA', 'Austin, TX', 'Dallas, TX', 'Chicago, IL',
-  'Denver, CO', 'Portland, OR', 'Los Angeles, CA', 'San Diego, CA', 'Remote'
-]
-
-const generateMockApplications = (): JobApplication[] => {
-  const applications: JobApplication[] = []
-  const statuses: Array<'applied' | 'interview' | 'offer' | 'rejected' | 'rejected_after_interview'> = 
-    ['applied', 'interview', 'offer', 'rejected', 'rejected_after_interview']
-  
-  // Generate 50 applications with dates spanning 6 months
-  for (let i = 0; i < 50; i++) {
-    const daysAgo = Math.floor(Math.random() * 180) // Random date within last 6 months
-    const status = statuses[Math.floor(Math.random() * statuses.length)]
-    const company = companies[Math.floor(Math.random() * companies.length)]
-    const position = positions[Math.floor(Math.random() * positions.length)]
-    const location = locations[Math.floor(Math.random() * locations.length)]
-    
-    const notes = [
-      `Applied through ${Math.random() > 0.5 ? 'company website' : 'LinkedIn'}.`,
-      `Referred by ${Math.random() > 0.5 ? 'colleague' : 'friend'}.`,
-      `Technical interview scheduled.`,
-      `Passed phone screen, moving to next round.`,
-      `Received offer! Considering options.`,
-      `Not selected after ${Math.random() > 0.5 ? 'phone screen' : 'final round'}.`,
-      `Waiting for response.`,
-      `Great culture fit, excited about the role.`,
-      `Competitive salary package.`,
-      `Remote position available.`,
-    ][Math.floor(Math.random() * 10)]
-    
-    applications.push({
-      id: `mock-${i + 1}`,
-      company,
-      position,
-      status,
-      appliedDate: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      location,
-      notes,
-    })
-  }
-  
-  return applications
-}
-
-const mockApplications: JobApplication[] = generateMockApplications()
-
 type SortOrder = 'asc' | 'desc' | null
 type StatusFilter = 'all' | 'applied' | 'interview' | 'offer' | 'rejected' | 'rejected_after_interview'
 
 export default function Dashboard({ onSignOut }: DashboardProps = {}) {
   const [applications, setApplications] = useState<JobApplication[]>([])
-  const [showMockData, setShowMockData] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [editingApp, setEditingApp] = useState<JobApplication | null>(null)
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc') // Default: newest first
@@ -128,30 +97,22 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const loadMockData = () => {
-    setApplications(mockApplications)
-    setShowMockData(true)
-  }
-
   const fetchApplications = async () => {
     try {
       const res = await fetch('/api/applications')
       if (res.ok) {
         const data = await res.json()
-        setApplications(data)
-        // If no real data and mock data is showing, keep mock data
-        if (data.length === 0 && showMockData) {
-          setApplications(mockApplications)
-        } else if (data.length > 0) {
-          setShowMockData(false)
-        }
+        const normalized: JobApplication[] = data.map(
+          (row: JobApplication & { status: string }) => ({
+            ...row,
+            status: dbStatusToUi(row.status),
+            appliedDate: toDateInputValue(String(row.appliedDate)),
+          })
+        )
+        setApplications(normalized)
       }
     } catch (error) {
       console.error('Failed to fetch applications:', error)
-      // On error, show mock data if enabled
-      if (showMockData) {
-        setApplications(mockApplications)
-      }
     }
   }
 
@@ -164,7 +125,10 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          status: uiStatusToDb(formData.status),
+        }),
       })
 
       if (res.ok) {
@@ -204,7 +168,7 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
       company: app.company,
       position: app.position,
       status: app.status,
-      appliedDate: app.appliedDate,
+      appliedDate: toDateInputValue(app.appliedDate),
       location: app.location || '',
       notes: app.notes || '',
     })
@@ -374,11 +338,6 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex-1">
               <h2 className="text-2xl font-bold text-white tracking-tight mb-2">Applications</h2>
-              {showMockData && (
-                <p className="text-sm text-gray-400">
-                  Showing sample data • <button onClick={() => { setApplications([]); setShowMockData(false); }} className="text-orange-400 hover:text-orange-300 underline transition-colors">Clear</button>
-                </p>
-              )}
             </div>
             <div className="flex gap-3 items-center">
             {/* Status Filter */}
@@ -485,21 +444,14 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
           <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 p-12 text-center">
             <Briefcase className="h-16 w-16 text-gray-700 mx-auto mb-6" />
             <h3 className="text-xl font-semibold text-white mb-2">No applications yet</h3>
-            <p className="text-gray-400 mb-6">Get started by adding your first job application or view sample data</p>
-            <div className="flex gap-4 justify-center">
+            <p className="text-gray-400 mb-6">Get started by adding your first job application.</p>
+            <div className="flex justify-center">
               <button
                 onClick={openNewModal}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-200 font-medium shadow-lg shadow-orange-500/20"
               >
                 <Plus className="h-5 w-5" />
                 Add Application
-              </button>
-              <button
-                onClick={loadMockData}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 border border-gray-700 hover:border-orange-500/50 transition-all duration-200"
-              >
-                <Briefcase className="h-5 w-5" />
-                View Sample Data
               </button>
             </div>
           </div>

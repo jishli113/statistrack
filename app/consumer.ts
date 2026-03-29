@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client'
+import type { JobApplication, Prisma } from '@prisma/client'
 import { redisMQueue, redisRateLimit, createGmailReceiveQueue } from '@/app/connection'
 import { google } from 'googleapis'
 import { prisma } from '@/lib/prisma'
@@ -7,6 +7,14 @@ import { getGmailMessageSearchText } from '@/lib/gmailMessageText'
 import { claudeResponse } from '@/app/evalutation'
 
 type Job = { userId: string }
+
+const JobApplicationStatus = {
+  Applied: 'Applied',
+  Interview: 'Interview',
+  Offer: 'Offer',
+  Rejected_Direct: 'Rejected_Direct',
+  Rejected_After_Interview: 'Rejected_After_Interview',
+} as const
 
 const truncateEmailText = (text: string, maxChars = 500) => {
   const t = text.trim().replace(/[\r\n]/g, '')
@@ -19,6 +27,35 @@ const gmailSearchAfterDay = (d: Date) => {
   const m = String(d.getUTCMonth() + 1).padStart(2, '0')
   const day = String(d.getUTCDate()).padStart(2, '0')
   return `after:${y}/${m}/${day}`
+}
+
+function parseJobStatusFromClaude(
+  parsedType: unknown
+): JobApplication['status'] {
+  const raw = String(parsedType ?? '').trim()
+  if (raw === 'Applied') return JobApplicationStatus.Applied
+  if (raw === 'Interview') return JobApplicationStatus.Interview
+  if (raw === 'Offer') return JobApplicationStatus.Offer
+  if (raw === 'Rejected (Direct)') return JobApplicationStatus.Rejected_Direct
+  if (raw === 'Rejected (After Interview)') return JobApplicationStatus.Rejected_After_Interview
+  if (raw === 'Rejected') return JobApplicationStatus.Rejected_Direct
+  return JobApplicationStatus.Applied
+}
+
+function resolveStatusForUpdate(
+  existingStatus: JobApplication['status'],
+  parsedType: unknown
+): JobApplication['status'] {
+  const raw = String(parsedType ?? '').trim()
+  if (raw === 'Rejected') {
+    if (existingStatus === JobApplicationStatus.Applied) {
+      return JobApplicationStatus.Rejected_Direct
+    }
+    if (existingStatus === JobApplicationStatus.Interview) {
+      return JobApplicationStatus.Rejected_After_Interview
+    }
+  }
+  return parseJobStatusFromClaude(parsedType)
 }
 
 export const consumeMessage = async () => {
@@ -103,8 +140,9 @@ export const consumeMessage = async () => {
           const truncatedText = truncateEmailText(text.toString())
           console.log('truncatedText', truncatedText)
           const score = sumKeywordMatches(truncatedText)
+          console.log('score', score)
 
-          if (score >= 10) {
+          if (score >= 7) {
             console.log('[consumer] email score >= 10', { score, truncatedText })
             const response = await claudeResponse(truncatedText)
             console.log("response", response)
@@ -136,8 +174,7 @@ export const consumeMessage = async () => {
                 await prisma.jobApplication.update({
                   where: { id: existing.id },
                   data: {
-                    status: parsedData.type,
-                    appliedDate: new Date(),
+                    status: resolveStatusForUpdate(existing.status, parsedData.type),
                   },
                 })
               } else {
@@ -149,7 +186,7 @@ export const consumeMessage = async () => {
                     location: parsedData.location
                       ? String(parsedData.location)
                       : null,
-                    status: parsedData.type,
+                    status: parseJobStatusFromClaude(parsedData.type),
                     appliedDate: appliedDateFromEmail,
                     externalJobId,
                   },
@@ -171,7 +208,7 @@ export const consumeMessage = async () => {
                 await prisma.jobApplication.update({
                   where: { id: existing.id },
                   data: {
-                    status: parsedData.type,
+                    status: resolveStatusForUpdate(existing.status, parsedData.type),
                     appliedDate: new Date(),
                   },
                 })
@@ -182,7 +219,7 @@ export const consumeMessage = async () => {
                     company,
                     position,
                     location,
-                    status: parsedData.type,
+                    status: parseJobStatusFromClaude(parsedData.type),
                     appliedDate: appliedDateFromEmail,
                     externalJobId: parsedData.job_id
                       ? String(parsedData.job_id)
@@ -210,7 +247,7 @@ export const consumeMessage = async () => {
                     location: parsedData.location
                       ? String(parsedData.location)
                       : null,
-                    status: parsedData.type,
+                    status: parseJobStatusFromClaude(parsedData.type),
                     appliedDate: appliedDateFromEmail,
                     externalJobId: parsedData.job_id
                       ? String(parsedData.job_id)
@@ -222,7 +259,10 @@ export const consumeMessage = async () => {
                 await prisma.jobApplication.update({
                   where: { id: candidates[0].id },
                   data: {
-                    status: parsedData.type,
+                    status: resolveStatusForUpdate(
+                      candidates[0].status,
+                      parsedData.type
+                    ),
                     appliedDate: new Date(),
                   },
                 })
