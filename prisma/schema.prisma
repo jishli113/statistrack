@@ -18,7 +18,7 @@ model User {
   image         String?
   name          String?
   password      String?
-  gmailToken    String?
+  gmailLastSynced DateTime? 
   accounts      Account[]
   applications  JobApplication[]
   sessions      Session[]
@@ -58,17 +58,25 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+enum JobApplicationStatus {
+  Applied
+  Interview
+  Offer
+  Rejected_Direct          @map("Rejected (Direct)")
+  Rejected_After_Interview @map("Rejected (After Interview)")
+}
+
 model JobApplication {
-  id            String   @id @default(cuid())
-  company       String
-  position      String
-  status        String
-  appliedDate   DateTime
-  location      String?
-  notes         String?
-  userId        String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  externalJobId String?
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String               @id @default(cuid())
+  company         String
+  position        String
+  status          JobApplicationStatus
+  appliedDate     DateTime
+  location        String?
+  notes           String?
+  userId          String
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  externalJobId   String?
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

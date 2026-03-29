@@ -11,6 +11,13 @@ declare module 'next-auth' {
   interface User {
     id: string
     email: string
+    gmailLastSynced?: Date | null
+  }
+}
+
+declare module 'next-auth/adapters' {
+  interface AdapterUser {
+    gmailLastSynced?: Date | null
   }
 }
 
