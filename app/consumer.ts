@@ -28,6 +28,51 @@ const truncateEmailText = (text: string, maxChars = 500) => {
   return t.slice(0, maxChars)
 }
 
+const sanitizeForLLM = (text: string) => {
+  let sanitized = text
+  const tokenMap = new Map<string, string>()
+  const tokenCounters = new Map<string, number>()
+
+  const replaceWithStableToken = (
+    input: string,
+    pattern: RegExp,
+    prefix: 'EMAIL' | 'PHONE' | 'URL' | 'ID'
+  ) =>
+    input.replace(pattern, (match) => {
+      const key = match.trim().toLowerCase()
+      const existing = tokenMap.get(key)
+      if (existing) return existing
+      const next = (tokenCounters.get(prefix) ?? 0) + 1
+      tokenCounters.set(prefix, next)
+      const token = `[${prefix}_${next}]`
+      tokenMap.set(key, token)
+      return token
+    })
+
+  sanitized = replaceWithStableToken(
+    sanitized,
+    /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
+    'EMAIL'
+  )
+  sanitized = replaceWithStableToken(
+    sanitized,
+    /(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}\b/g,
+    'PHONE'
+  )
+  sanitized = replaceWithStableToken(
+    sanitized,
+    /\bhttps?:\/\/[^\s<>"']+/gi,
+    'URL'
+  )
+  sanitized = replaceWithStableToken(
+    sanitized,
+    /\b(?:candidate|applicant|application|requisition|req|job)\s*[:#-]?\s*[a-z0-9-]{5,}\b/gi,
+    'ID'
+  )
+
+  return sanitized
+}
+
 const gmailSearchAfterDay = (d: Date) => {
   const y = d.getUTCFullYear()
   const m = String(d.getUTCMonth() + 1).padStart(2, '0')
@@ -162,13 +207,17 @@ export const consumeMessage = async () => {
           maxInternalDateMs = Math.max(maxInternalDateMs, internalMs)
           const text = getGmailMessageSearchText(full.data)
           const truncatedText = truncateEmailText(text.toString())
-          console.log('truncatedText', truncatedText)
           const score = sumKeywordMatches(truncatedText)
           console.log('score', score)
 
           if (score >= 7) {
-            console.log('[consumer] email score >= 10', { score, truncatedText })
-            const response = await claudeResponse(truncatedText)
+            const sanitizedText = sanitizeForLLM(truncatedText)
+            console.log('[consumer] email score >= 7', {
+              score,
+              truncatedLength: truncatedText.length,
+              sanitizedLength: sanitizedText.length,
+            })
+            const response = await claudeResponse(sanitizedText)
             console.log("response", response)
             const textBlock = response.content.find((b) => b.type === 'text')
             if (!textBlock || textBlock.type !== 'text') {
