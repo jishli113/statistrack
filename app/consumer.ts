@@ -7,6 +7,12 @@ import { getGmailMessageSearchText } from '@/lib/gmailMessageText'
 import { claudeResponse } from '@/app/evalutation'
 
 type Job = { userId: string }
+//Initial backoff of one second
+const RECEIVE_BACKOFF_INITIAL_MS = 1_000
+//Maximum backoff of three minutes
+const RECEIVE_BACKOFF_MAX_MS = 3 * 60 * 1_000
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 const JobApplicationStatus = {
   Applied: 'Applied',
@@ -61,11 +67,29 @@ function resolveStatusForUpdate(
 export const consumeMessage = async () => {
   console.log('[consumer] setup start')
 
+  let receiveBackoffMs = RECEIVE_BACKOFF_INITIAL_MS
+
   while (true) {
-    const receiveQueue = createGmailReceiveQueue()
-    const message = await receiveQueue.receiveMessage<Job>(5000)
+    let message: { body: Job; streamId: string } | null | undefined
+
+    try {
+      const receiveQueue = createGmailReceiveQueue()
+      message = await receiveQueue.receiveMessage<Job>(5000)
+    } catch (err) {
+      console.error('[consumer] receiveMessage failed', err)
+      await sleep(receiveBackoffMs)
+      receiveBackoffMs = Math.min(RECEIVE_BACKOFF_MAX_MS, receiveBackoffMs * 2)
+      continue
+    }
+
     console.log(redisMQueue.concurrencyCounter, "CONCURRENCY COUNTER")
-    if (!message) continue
+    if (!message) {
+      await sleep(receiveBackoffMs)
+      receiveBackoffMs = Math.min(RECEIVE_BACKOFF_MAX_MS, receiveBackoffMs * 2)
+      continue
+    }
+
+    receiveBackoffMs = RECEIVE_BACKOFF_INITIAL_MS
 
     const messageData = message.body
     const userId = messageData.userId
