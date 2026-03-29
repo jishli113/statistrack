@@ -10,3 +10,24 @@
 {"sessionId":"e049c2","location":"worker.js:startup","message":"worker env snapshot","data":{"hasRabbitUrl":true,"hypothesisId":"C"},"timestamp":1774475245029,"runId":"pre-fix"}
 {"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RABBITMQ_URL scheme before connect","data":{"protocol":"amqp:","hasUrl":true,"hypothesisId":"A"},"timestamp":1774475245030,"runId":"post-fix"}
 {"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RabbitMQ connect ok","data":{"ok":true,"hypothesisId":"A"},"timestamp":1774475245050,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RABBITMQ_URL scheme before connect","data":{"protocol":"amqp:","hasUrl":true,"hypothesisId":"A"},"timestamp":1774601411885,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RABBITMQ_URL scheme before connect","data":{"protocol":"amqp:","hasUrl":true,"hypothesisId":"A"},"timestamp":1774601411903,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RabbitMQ connect ok","data":{"ok":true,"hypothesisId":"A"},"timestamp":1774601411959,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RabbitMQ connect ok","data":{"ok":true,"hypothesisId":"A"},"timestamp":1774601411965,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RABBITMQ_URL scheme before connect","data":{"protocol":"amqp:","hasUrl":true,"hypothesisId":"A"},"timestamp":1774601906307,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RABBITMQ_URL scheme before connect","data":{"protocol":"amqp:","hasUrl":true,"hypothesisId":"A"},"timestamp":1774601906310,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RabbitMQ connect ok","data":{"ok":true,"hypothesisId":"A"},"timestamp":1774601906334,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RabbitMQ connect ok","data":{"ok":true,"hypothesisId":"A"},"timestamp":1774601906336,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RABBITMQ_URL scheme before connect","data":{"protocol":"amqp:","hasUrl":true,"hypothesisId":"A"},"timestamp":1774601943424,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RABBITMQ_URL scheme before connect","data":{"protocol":"amqp:","hasUrl":true,"hypothesisId":"A"},"timestamp":1774601943431,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RabbitMQ connect ok","data":{"ok":true,"hypothesisId":"A"},"timestamp":1774601943449,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"connection.ts:connectRabbitMQ","message":"RabbitMQ connect ok","data":{"ok":true,"hypothesisId":"A"},"timestamp":1774601943451,"runId":"post-fix"}
+{"sessionId":"e049c2","location":"worker.js:startup","message":"worker env snapshot","data":{"hasRabbitUrl":true,"hypothesisId":"C"},"timestamp":1774603300076,"runId":"pre-fix"}
+{"sessionId":"e049c2","location":"worker.js:startup","message":"worker env snapshot","data":{"hasRabbitUrl":true,"hypothesisId":"C"},"timestamp":1774603300076,"runId":"pre-fix"}
+{"sessionId":"e049c2","location":"worker.js:startup","message":"worker env snapshot","data":{"hasRabbitUrl":true,"hypothesisId":"C"},"timestamp":1774603300076,"runId":"pre-fix"}
+{"sessionId":"e049c2","location":"worker.js:startup","message":"worker env snapshot","data":{"hasRabbitUrl":true,"hypothesisId":"C"},"timestamp":1774603381622,"runId":"pre-fix"}
+{"sessionId":"e049c2","location":"worker.js:startup","message":"worker env snapshot","data":{"hasRabbitUrl":true,"hypothesisId":"C"},"timestamp":1774603381622,"runId":"pre-fix"}
+{"sessionId":"e049c2","location":"worker.js:startup","message":"worker env snapshot","data":{"hasRabbitUrl":true,"hypothesisId":"C"},"timestamp":1774603381622,"runId":"pre-fix"}
+{"sessionId":"e049c2","location":"worker.js:startup","message":"worker env snapshot","data":{"hasRabbitUrl":true,"hypothesisId":"C"},"timestamp":1774603500280,"runId":"pre-fix"}
+{"sessionId":"e049c2","location":"worker.js:startup","message":"worker env snapshot","data":{"hasRabbitUrl":true,"hypothesisId":"C"},"timestamp":1774603500280,"runId":"pre-fix"}
+{"sessionId":"e049c2","location":"worker.js:startup","message":"worker env snapshot","data":{"hasRabbitUrl":true,"hypothesisId":"C"},"timestamp":1774603500280,"runId":"pre-fix"}

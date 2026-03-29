@@ -18,7 +18,7 @@ model User {
   image         String?
   name          String?
   password      String?
-  gmailToken    String?
+  gmailLastSynced DateTime? 
   accounts      Account[]
   applications  JobApplication[]
   sessions      Session[]

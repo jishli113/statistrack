@@ -1,130 +1,250 @@
-import { connectRabbitMQ } from '@/app/connection'
+import type { Prisma } from '@prisma/client'
+import { redisMQueue, redisRateLimit, createGmailReceiveQueue } from '@/app/connection'
 import { google } from 'googleapis'
 import { prisma } from '@/lib/prisma'
 import { sumKeywordMatches } from '@/lib/emailTriggerWords'
 import { getGmailMessageSearchText } from '@/lib/gmailMessageText'
 import { claudeResponse } from '@/app/evalutation'
 
-export const consumeMessage = async (queue: string) => {
-  const { channel } = await connectRabbitMQ()
-  await channel.assertQueue(queue, { durable: true })
-  channel.consume(queue, async (message) => {
-    console.log("IN!")
-    if (!message) return
-    const messageData = JSON.parse(message.content.toString())
-    const userId = messageData.userId as string
+type Job = { userId: string }
+
+const truncateEmailText = (text: string, maxChars = 500) => {
+  const t = text.trim().replace(/[\r\n]/g, '')
+  if (t.length <= maxChars) return t
+  return t.slice(0, maxChars)
+}
+
+const gmailSearchAfterDay = (d: Date) => {
+  const y = d.getUTCFullYear()
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(d.getUTCDate()).padStart(2, '0')
+  return `after:${y}/${m}/${day}`
+}
+
+export const consumeMessage = async () => {
+  console.log('[consumer] setup start')
+
+  while (true) {
+    const receiveQueue = createGmailReceiveQueue()
+    const message = await receiveQueue.receiveMessage<Job>(5000)
+    console.log(redisMQueue.concurrencyCounter, "CONCURRENCY COUNTER")
+    if (!message) continue
+
+    const messageData = message.body
+    const userId = messageData.userId
+    console.log('[consumer] message received', { streamId: message.streamId, hasUserId: Boolean(userId) })
+
     const account = await prisma.account.findFirst({
       where: { userId, provider: 'google' },
+      select: { refresh_token: true },
     })
-    if (message) {
-      console.log(`Message received from ${queue}: ${message.content.toString()}`)
-      const oauth2 = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID!,
-        process.env.GOOGLE_CLIENT_SECRET!
-      )
-      if (!account || !account.refresh_token){
-        channel.ack(message)
-        return
-      }
-      oauth2.setCredentials({
-        refresh_token: account.refresh_token,
-      })
-      const gmail = google.gmail({ version: 'v1', auth: oauth2 })
-      let pageToken = messageData.pageToken as string | undefined
-      while (true) {
-        const res = await gmail.users.messages.list({
-          userId: 'me',
-          maxResults: 50,
-          pageToken: pageToken,
-        })
-        if (!res.data.messages?.length) break
-        const listed = res.data.messages ?? []
-        await Promise.all(
-          listed.map(async (ref) => {
-            if (!ref.id) return
-            const full = await gmail.users.messages.get({
-              userId: 'me',
-              id: ref.id,
-              format: 'full',
-            })
-            if (!full.data) return
-            const text = getGmailMessageSearchText(full.data)
-            const score = sumKeywordMatches(text)
-            // proceed to LLM when score crosses threshold
-            if (score >= 6) {
-                const response = await claudeResponse(text.toString())
-                const textBlock = response.content.find((b) => b.type === 'text')
-                if (!textBlock || textBlock.type !== 'text') {
-                  console.error('No text block in Claude response', response.content)
-                  return
-                }
-                const parsedData = JSON.parse(textBlock.text)
-                if (parsedData.application == "yes") {
-                    console.log('Application email detected')
-                }
-                if (parsedData.job_id) {
-                    await prisma.jobApplication.findFirst({
-                        where: {
-                          userId,
-                          company: parsedData.company,
-                          externalJobId: parsedData.job_id
-                        },
-                      })
-                  } else if (parsedData.location) {
-                    await prisma.jobApplication.findFirst({
-                      where: {
-                        userId,
-                        company: parsedData.company,
-                        position: parsedData.job_title,
-                        location: parsedData.location,
-                      },
-                    })
-                  } else {
-                    const candidates = await prisma.jobApplication.findMany({
-                      where: {
-                        userId,
-                        company: parsedData.company,
-                        position: parsedData.job_title,
-                      },
-                      orderBy: { updatedAt: 'desc' },
-                    })
-                    
-                    if (candidates.length === 0) {
-                      const appliedDate = full.data.internalDate
-                        ? new Date(Number(full.data.internalDate))
-                        : new Date()
-                      await prisma.jobApplication.create({
-                        data: {
-                          userId,
-                          company: String(parsedData.company ?? ''),
-                          position: String(parsedData.job_title ?? ''),
-                          location: parsedData.location
-                            ? String(parsedData.location)
-                            : null,
-                          status: parsedData.type,
-                          appliedDate,
-                          externalJobId: parsedData.job_id
-                            ? String(parsedData.job_id)
-                            : null,
-                        },
-                      })
-                    } else{
-                      await prisma.jobApplication.update({
-                        where: { id: candidates[0].id },
-                        data: {
-                          status: parsedData.type,
-                          appliedDate: new Date(),
-                        },
-                      })
-                    }
-                  }
-            }
-          })
-        )
-        pageToken = res.data.nextPageToken ?? undefined
-        if (!pageToken) break
-      }
-      channel.ack(message)
+    const userRow = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { gmailLastSynced: true },
+    })
+
+    const oauth2 = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID!,
+      process.env.GOOGLE_CLIENT_SECRET!
+    )
+    if (!account || !account.refresh_token) {
+      console.log('[consumer] missing google account token, skipping', { hasAccount: Boolean(account), userId })
+      continue
     }
-  })
+    oauth2.setCredentials({
+      refresh_token: account.refresh_token,
+    })
+    const gmail = google.gmail({ version: 'v1', auth: oauth2 })
+    const lastSynced = userRow?.gmailLastSynced
+    const cutoffMs = lastSynced?.getTime() ?? 0
+    const listQuery = lastSynced ? gmailSearchAfterDay(lastSynced) : undefined
+    let pageToken: string | undefined
+    let maxInternalDateMs = cutoffMs
+
+    while (true) {
+      const res = await gmail.users.messages.list({
+        userId: 'me',
+        maxResults: 20,
+        pageToken,
+        q: listQuery,
+      })
+      if (!res.data.messages?.length) break
+      console.log('res.data.messages', res.data.messages)
+
+      const listed = res.data.messages ?? []
+      console.log('[consumer] fetched gmail batch', { listedCount: listed.length })
+
+      await Promise.all(
+        listed.map(async (ref) => {
+          if (!ref.id) return
+          console.log("waiting?")
+          const {success, remaining} = await redisRateLimit.blockUntilReady(
+            `${userId}_gmail_messages_list`,
+            60000,
+          )
+          console.log('success', success)
+          console.log('remaining', remaining)
+          if (!success){
+            console.log('[consumer] rate limit exceeded, timed out', { remaining })
+            return
+          } 
+          const full = await gmail.users.messages.get({
+            userId: 'me',
+            id: ref.id,
+            format: 'full',
+          })
+          if (!full.data) return
+          const internalMs = full.data.internalDate
+            ? Number(full.data.internalDate)
+            : 0
+          if (internalMs <= cutoffMs) return
+          maxInternalDateMs = Math.max(maxInternalDateMs, internalMs)
+          const text = getGmailMessageSearchText(full.data)
+          const truncatedText = truncateEmailText(text.toString())
+          console.log('truncatedText', truncatedText)
+          const score = sumKeywordMatches(truncatedText)
+
+          if (score >= 10) {
+            console.log('[consumer] email score >= 10', { score, truncatedText })
+            const response = await claudeResponse(truncatedText)
+            console.log("response", response)
+            const textBlock = response.content.find((b) => b.type === 'text')
+            if (!textBlock || textBlock.type !== 'text') {
+              console.error('No text block in Claude response', response.content)
+              return
+            }
+            const parsedData = JSON.parse(textBlock.text)
+            if (parsedData.application === 'yes') {
+              console.log('Application email detected')
+            }
+
+            const appliedDateFromEmail = full.data.internalDate
+              ? new Date(Number(full.data.internalDate))
+              : new Date()
+
+            if (parsedData.job_id) {
+              const company = String(parsedData.company ?? '')
+              const externalJobId = String(parsedData.job_id)
+              const existing = await prisma.jobApplication.findFirst({
+                where: {
+                  userId,
+                  company,
+                  externalJobId,
+                },
+              })
+              if (existing) {
+                await prisma.jobApplication.update({
+                  where: { id: existing.id },
+                  data: {
+                    status: parsedData.type,
+                    appliedDate: new Date(),
+                  },
+                })
+              } else {
+                await prisma.jobApplication.create({
+                  data: {
+                    userId,
+                    company,
+                    position: String(parsedData.job_title ?? ''),
+                    location: parsedData.location
+                      ? String(parsedData.location)
+                      : null,
+                    status: parsedData.type,
+                    appliedDate: appliedDateFromEmail,
+                    externalJobId,
+                  },
+                })
+              }
+            } else if (parsedData.location) {
+              const company = String(parsedData.company ?? '')
+              const position = String(parsedData.job_title ?? '')
+              const location = String(parsedData.location)
+              const existing = await prisma.jobApplication.findFirst({
+                where: {
+                  userId,
+                  company,
+                  position,
+                  location,
+                },
+              })
+              if (existing) {
+                await prisma.jobApplication.update({
+                  where: { id: existing.id },
+                  data: {
+                    status: parsedData.type,
+                    appliedDate: new Date(),
+                  },
+                })
+              } else {
+                await prisma.jobApplication.create({
+                  data: {
+                    userId,
+                    company,
+                    position,
+                    location,
+                    status: parsedData.type,
+                    appliedDate: appliedDateFromEmail,
+                    externalJobId: parsedData.job_id
+                      ? String(parsedData.job_id)
+                      : null,
+                  },
+                })
+              }
+            } else {
+              const candidates = await prisma.jobApplication.findMany({
+                where: {
+                  userId,
+                  company: parsedData.company,
+                  position: parsedData.job_title,
+                },
+                orderBy: { updatedAt: 'desc' },
+              })
+
+              if (candidates.length === 0) {
+                console.log("creating new job application")
+                await prisma.jobApplication.create({
+                  data: {
+                    userId,
+                    company: String(parsedData.company ?? ''),
+                    position: String(parsedData.job_title ?? ''),
+                    location: parsedData.location
+                      ? String(parsedData.location)
+                      : null,
+                    status: parsedData.type,
+                    appliedDate: appliedDateFromEmail,
+                    externalJobId: parsedData.job_id
+                      ? String(parsedData.job_id)
+                      : null,
+                  },
+                })
+              } else {
+                console.log("updating existing job application")
+                await prisma.jobApplication.update({
+                  where: { id: candidates[0].id },
+                  data: {
+                    status: parsedData.type,
+                    appliedDate: new Date(),
+                  },
+                })
+              }
+            }
+          }
+        })
+      )
+
+      pageToken = res.data.nextPageToken ?? undefined
+      if (!pageToken) break
+    }
+
+    if (maxInternalDateMs > cutoffMs) {
+      const data: Prisma.UserUpdateInput = {
+        gmailLastSynced: new Date(maxInternalDateMs),
+      }
+      console.log("updating user gmailLastSynced", data)
+      await prisma.user.update({
+        where: { id: userId },
+        data,
+      })
+    }
+  }
 }

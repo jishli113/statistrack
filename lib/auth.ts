@@ -98,6 +98,20 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/',
   },
+  events: {
+    async signIn({ user, account }) {
+      if (account?.provider !== 'google' || !user?.id) return
+      const row = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { gmailLastSynced: true },
+      })
+      if (row?.gmailLastSynced != null) return
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { gmailLastSynced: new Date() },
+      })
+    },
+  },
   callbacks: {
     async signIn({ user, account, profile }) {
       console.log('🔐 SignIn callback called:', { 
@@ -138,7 +152,7 @@ export const authOptions: NextAuthOptions = {
           if (existingUser) {
             // Update user object to use existing user's ID
             user.id = existingUser.id
-            
+
             // Check if account is already linked
             const accountExists = existingUser.accounts.some(
               acc => acc.provider === account.provider && acc.providerAccountId === account.providerAccountId
