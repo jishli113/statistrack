@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
+import statisTrackLogo from '@/static/statis_track.png'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 
@@ -66,10 +68,15 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-black p-4">
       <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-800 p-10 rounded-2xl shadow-2xl w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-            Job Tracker
+          <h1 className="flex justify-center mb-3">
+            <Image
+              src={statisTrackLogo}
+              alt="StatisTrack"
+              className="h-12 sm:h-14 w-auto object-contain"
+              priority
+            />
           </h1>
-          <p className="text-gray-400 text-sm">Professional Application Management</p>
+          <p className="text-lg font-bold tracking-tight text-gray-200">StatisTrack</p>
         </div>
         
         <h2 className="text-xl font-semibold text-center mb-8 text-white">

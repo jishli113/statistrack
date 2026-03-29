@@ -1,121 +1,110 @@
-# Job Application Tracker
+# StatisTrack
 
-A modern web application for tracking job applications and their status, built with Next.js, TypeScript, and Tailwind CSS.
+A full-stack job application tracker with **Gmail-assisted status updates**: scheduled jobs enqueue work per user, a worker reads new mail via the Gmail API, **keyword scoring** filters likely recruiting mail, and **Claude (Anthropic)** parses structured fields to create or update applications in PostgreSQL. The dashboard includes stats, filtering, and a **Sankey-style application flow** visualization.
 
-## Features
+This is not only CRUD + auth—it includes **background processing**, **external APIs**, **rate limiting**, and **LLM-based extraction**.
 
-- 🔐 User authentication (sign up/sign in)
-- 📊 Dashboard with application statistics
-- ➕ Add, edit, and delete job applications
-- 📱 Responsive design
-- 🎨 Modern UI with Tailwind CSS
+## Highlights
 
-## Tech Stack
+- **Multi-user auth** — NextAuth.js with credentials and OAuth (Google account used for Gmail access when linked).
+- **Applications API** — REST handlers for listing, creating, updating, and deleting `JobApplication` rows (Prisma + Postgres).
+- **Email pipeline (optional)** — Vercel Cron hits a secured route → **Upstash Queue** → long-running **Node worker** (`app/worker.js` → `consumer.ts`) → Gmail API → heuristic scoring → **Claude** JSON extraction → upserts in the database, with **Upstash Redis rate limiting** on Gmail calls.
+- **Dashboard** — Responsive UI: filters, date range, search, sortable table, empty states, and Application Flow chart.
 
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Authentication**: NextAuth.js
-- **Database**: Supabase (PostgreSQL) with Prisma ORM
-- **Deployment**: Vercel
+## Tech stack
 
-## Getting Started
+| Layer | Choice |
+|--------|--------|
+| App | Next.js 14 (App Router), React 18, TypeScript |
+| UI | Tailwind CSS, lucide-react |
+| Auth | NextAuth.js, `@next-auth/prisma-adapter`, bcrypt (credentials) |
+| Data | PostgreSQL (Supabase), Prisma ORM |
+| Async | Upstash Redis **Queue**, `@upstash/ratelimit` |
+| Integrations | Google APIs (Gmail), Anthropic SDK (Claude) |
+| Deploy | Vercel (see [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)) |
+
+For database and pooling notes, see [SUPABASE_SETUP.md](./SUPABASE_SETUP.md). For Google/GitHub OAuth, see [OAUTH_SETUP.md](./OAUTH_SETUP.md).
+
+## Architecture
+
+See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for a diagram and flow (cron → queue → worker → Gmail → Claude → Prisma).
+
+## Getting started
 
 ### Prerequisites
 
-- Node.js 18+ 
-- npm or yarn
-- PostgreSQL database (local or cloud)
+- Node.js 18+
+- PostgreSQL (local or Supabase)
+- For the email pipeline: Upstash Redis, Google OAuth with Gmail access, Anthropic API key (see Architecture doc)
 
-### Installation
+### Install
 
-1. Clone the repository:
 ```bash
 git clone <your-repo-url>
 cd job-app-tracker
-```
-
-2. Install dependencies:
-```bash
 npm install
 ```
 
-3. Set up environment variables:
+### Environment
+
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and add:
-- `DATABASE_URL`: Your Supabase PostgreSQL connection string (see Supabase setup below)
-- `NEXTAUTH_SECRET`: Generate one with `openssl rand -base64 32`
-- `NEXTAUTH_URL`: `http://localhost:3000` for local development
+Then set at least:
 
-4. Set up the database:
+- **Database:** `DATABASE_URL` (and `DIRECT_URL` for migrations if you use a Supabase pooler—see Prisma schema comments)
+- **Auth:** `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, provider secrets as in [OAUTH_SETUP.md](./OAUTH_SETUP.md)
+- **Cron → queue:** `CRON_SECRET`; **Upstash:** `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
+- **Gmail worker:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (refresh token stored via linked Google account)
+- **Claude:** `CLAUDE_API_KEY`, `EMAIL_PARSE_PROMPT`, `MAX_TOKENS`
+
+### Database
+
 ```bash
 npx prisma generate
 npx prisma migrate dev --name init
 ```
 
-**Important**: Make sure to commit and push the migration files created in `prisma/migrations/` to your repository before deploying.
+Commit migration files under `prisma/migrations/` for production deploys.
 
-5. Run the development server:
+### Dev server
+
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Opens the app on port **3002** (see `package.json`).
 
-### Supabase Setup
+### Background worker (Gmail sync)
 
-See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for detailed instructions.
+The queue consumer runs outside the Next.js server:
 
-**Quick setup:**
-1. Create a project at [supabase.com](https://supabase.com)
-2. Get your connection string from **Settings** → **Database** → **Connection string (URI)**
-3. Add `?pgbouncer=true&connection_limit=1` for serverless/connection pooling
-4. Add it to your `.env` file as `DATABASE_URL`
-
-### Local PostgreSQL Setup (Alternative)
-
-If you prefer to use a local PostgreSQL database for development:
-
-**Option 1: Docker (Recommended)**
 ```bash
-docker run --name jobtracker-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=jobtracker -p 5432:5432 -d postgres
+npx tsx app/worker.js
 ```
 
-**Option 2: Install PostgreSQL locally**
-- Install PostgreSQL from [postgresql.org](https://www.postgresql.org/download/)
-- Create a database: `createdb jobtracker`
-- Use connection string: `postgresql://your_username:your_password@localhost:5432/jobtracker?schema=public`
+Run this where it can reach Postgres, Upstash, Google, and Anthropic—locally for development or a separate process/host in production. Cron configuration is described in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
-## Deployment to Vercel
+## Deployment
 
-See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for detailed deployment instructions.
+See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for Vercel env vars and migration notes (direct vs pooled DB URLs).
 
-**Quick setup:**
-1. Push your code to GitHub
-2. Import your repository in Vercel
-3. **Add environment variables in Vercel:**
-   - `DATABASE_URL`: Use Supabase **Session mode** (direct) connection string (for migrations)
-   - `NEXTAUTH_URL`: Your Vercel deployment URL
-   - `NEXTAUTH_SECRET`: Generate with `openssl rand -base64 32`
-4. **Deploy!** The build will automatically sync your database schema and build your app
-
-**Important**: For migrations, use the **direct connection** (Session mode) from Supabase, not the pooled connection. See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for details.
-
-## Project Structure
+## Project structure (abbreviated)
 
 ```
 job-app-tracker/
 ├── app/
-│   ├── api/          # API routes
-│   ├── globals.css   # Global styles
-│   ├── layout.tsx    # Root layout
-│   └── page.tsx      # Home page
-├── components/       # React components
-├── prisma/          # Prisma schema and migrations
-└── public/          # Static assets
+│   ├── api/              # Next.js route handlers (auth, applications, cron)
+│   ├── connection.ts     # Upstash Redis, queue, rate limiter
+│   ├── consumer.ts       # Queue consumer: Gmail + Claude + Prisma
+│   ├── evalutation.ts    # Claude API (email → structured JSON)
+│   ├── worker.js         # Process entry: runs consumer loop
+│   └── ...
+├── components/           # Dashboard, Sankey, login, etc.
+├── lib/                  # Prisma client, auth helpers, Gmail text + trigger words
+├── prisma/               # schema.prisma, migrations
+└── ...
 ```
 
 ## License

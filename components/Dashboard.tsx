@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import Image from 'next/image'
+import statisTrackLogo from '@/static/statis_track.png'
 import { Plus, Briefcase, Building2, Calendar, MapPin, Trash2, Edit2, ArrowUpDown, ArrowUp, ArrowDown, Filter, Search } from 'lucide-react'
 import SankeyDiagram from './SankeyDiagram'
 
@@ -81,6 +83,8 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc') // Default: newest first
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>(new Date().toISOString().split('T')[0]) // Default to today
   const [formData, setFormData] = useState({
@@ -96,6 +100,12 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
     fetchApplications()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (searchOpen) {
+      searchInputRef.current?.focus()
+    }
+  }, [searchOpen])
 
   const fetchApplications = async () => {
     try {
@@ -258,20 +268,28 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
   }
 
   return (
-    <div className="min-h-screen bg-black">
-      {/* Header */}
-      <header className="bg-black/80 backdrop-blur-lg border-b border-gray-900 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">Job Tracker</h1>
-            <p className="text-sm text-gray-400 mt-1">
-              Professional Application Management
-            </p>
+    <div className="fixed inset-0 z-0 flex min-h-0 min-w-0 flex-col overflow-hidden overflow-x-hidden overscroll-none bg-black">
+      {/* Header — single row so nothing clips vertically */}
+      <header className="z-40 shrink-0 border-b border-gray-900 bg-black/80 backdrop-blur-lg">
+        <div className="mx-auto box-border flex w-full max-w-[1600px] items-center justify-start gap-4 px-4 py-2.5 sm:gap-6 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+            <h1 className="m-0 shrink-0">
+              <Image
+                src={statisTrackLogo}
+                alt="StatisTrack"
+                className="h-7 w-auto object-contain object-left sm:h-8"
+                priority
+              />
+            </h1>
+            <span className="truncate text-base font-bold tracking-tight text-gray-200 sm:text-lg">
+              StatisTrack
+            </span>
           </div>
           {onSignOut && (
             <button
+              type="button"
               onClick={onSignOut}
-              className="px-5 py-2.5 text-sm font-medium text-gray-300 hover:text-white border border-gray-800 rounded-lg hover:bg-gray-900/50 hover:border-orange-500/50 transition-all duration-200"
+              className="ml-1 shrink-0 rounded-lg border border-gray-800 px-3 py-2 text-sm font-medium text-gray-300 transition-all duration-200 hover:border-orange-500/50 hover:bg-gray-900/50 hover:text-white sm:ml-2 sm:px-4"
             >
               Sign Out
             </button>
@@ -279,73 +297,73 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-          <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 p-6 hover:border-orange-500/30 transition-all duration-300">
-            <div className="flex items-center">
-              <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
-                <Briefcase className="h-6 w-6 text-orange-400" />
+      <main className="mx-auto box-border flex min-h-0 w-full max-w-[1600px] flex-1 flex-col overflow-hidden px-4 py-1.5 sm:px-6 lg:px-8">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]">
+          {/* Stats — compact horizontal row above applications */}
+          <div className="w-full min-w-0 shrink-0">
+            <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-gray-500 sm:text-[10px]">
+              Stats
+            </p>
+            <div className="grid w-full min-w-0 grid-cols-4 gap-1.5 sm:gap-2">
+              <div className="flex min-w-0 items-center gap-1.5 rounded-md border border-gray-800 bg-gray-900/50 px-1.5 py-1.5 backdrop-blur-sm sm:gap-2 sm:rounded-lg sm:px-2 sm:py-2">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-orange-500/20 bg-orange-500/10 sm:h-7 sm:w-7">
+                  <Briefcase className="h-3 w-3 text-orange-400 sm:h-3.5 sm:w-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[8px] font-medium uppercase leading-none tracking-wider text-gray-500 sm:text-[9px]">
+                    Total
+                  </p>
+                  <p className="text-sm font-bold leading-none text-white sm:text-base">{applications.length}</p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-400 uppercase tracking-wider">Total</p>
-                <p className="text-3xl font-bold text-white mt-1">{applications.length}</p>
+              <div className="flex min-w-0 items-center gap-1.5 rounded-md border border-gray-800 bg-gray-900/50 px-1.5 py-1.5 backdrop-blur-sm sm:gap-2 sm:rounded-lg sm:px-2 sm:py-2">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-orange-500/20 bg-orange-500/10 sm:h-7 sm:w-7">
+                  <div className="h-2.5 w-2.5 rounded bg-orange-400 sm:h-3 sm:w-3" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[8px] font-medium uppercase leading-none tracking-wider text-gray-500 sm:text-[9px]">
+                    Applied
+                  </p>
+                  <p className="text-sm font-bold leading-none text-white sm:text-base">{statusCounts.applied || 0}</p>
+                </div>
+              </div>
+              <div className="flex min-w-0 items-center gap-1.5 rounded-md border border-gray-800 bg-gray-900/50 px-1.5 py-1.5 backdrop-blur-sm sm:gap-2 sm:rounded-lg sm:px-2 sm:py-2">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-orange-500/30 bg-orange-500/20 sm:h-7 sm:w-7">
+                  <div className="h-2.5 w-2.5 rounded bg-orange-300 sm:h-3 sm:w-3" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[8px] font-medium uppercase leading-none tracking-wider text-gray-500 sm:text-[9px]">
+                    Interview
+                  </p>
+                  <p className="text-sm font-bold leading-none text-white sm:text-base">{statusCounts.interview || 0}</p>
+                </div>
+              </div>
+              <div className="flex min-w-0 items-center gap-1.5 rounded-md border border-gray-800 bg-gray-900/50 px-1.5 py-1.5 backdrop-blur-sm sm:gap-2 sm:rounded-lg sm:px-2 sm:py-2">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-green-500/20 bg-green-500/10 sm:h-7 sm:w-7">
+                  <div className="h-2.5 w-2.5 rounded bg-green-400 sm:h-3 sm:w-3" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[8px] font-medium uppercase leading-none tracking-wider text-gray-500 sm:text-[9px]">
+                    Offers
+                  </p>
+                  <p className="text-sm font-bold leading-none text-white sm:text-base">{statusCounts.offer || 0}</p>
+                </div>
               </div>
             </div>
           </div>
-          <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 p-6 hover:border-orange-500/30 transition-all duration-300">
-            <div className="flex items-center">
-              <div className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
-                <div className="h-6 w-6 bg-orange-400 rounded"></div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-400 uppercase tracking-wider">Applied</p>
-                <p className="text-3xl font-bold text-white mt-1">{statusCounts.applied || 0}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 p-6 hover:border-orange-500/30 transition-all duration-300">
-            <div className="flex items-center">
-              <div className="p-3 bg-orange-500/20 rounded-lg border border-orange-500/30">
-                <div className="h-6 w-6 bg-orange-300 rounded"></div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-400 uppercase tracking-wider">Interview</p>
-                <p className="text-3xl font-bold text-white mt-1">{statusCounts.interview || 0}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 p-6 hover:border-green-500/30 transition-all duration-300">
-            <div className="flex items-center">
-              <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                <div className="h-6 w-6 bg-green-400 rounded"></div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-400 uppercase tracking-wider">Offers</p>
-                <p className="text-3xl font-bold text-white mt-1">{statusCounts.offer || 0}</p>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Sankey Diagram */}
-        <div className="mb-10">
-          <SankeyDiagram applications={filteredAndSortedApplications} />
-        </div>
-
+          {/* Applications — full width */}
+          <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-1.5 overflow-x-hidden">
         {/* Actions and Filters */}
-        <div className="mb-6 space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold text-white tracking-tight mb-2">Applications</h2>
-            </div>
-            <div className="flex gap-3 items-center">
+        <div className="shrink-0">
+          <h2 className="mb-3 text-xl font-bold tracking-tight text-white sm:text-2xl">Applications</h2>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 sm:gap-x-5 sm:gap-y-3.5 lg:gap-x-6">
             {/* Status Filter */}
-            <div className="relative">
+            <div className="relative shrink-0">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                className="px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 appearance-none cursor-pointer pr-8"
+                className="h-9 pl-3 pr-8 py-0 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 appearance-none cursor-pointer"
               >
                 <option value="all" className="bg-gray-900">All Statuses</option>
                 <option value="applied" className="bg-gray-900">Applied</option>
@@ -356,99 +374,123 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
               </select>
               <Filter className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             </div>
-            {/* Sort Button */}
+            {/* Sort by applied date */}
             <button
+              type="button"
               onClick={toggleSortOrder}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg hover:bg-gray-800 hover:border-orange-500/50 text-white text-sm transition-all duration-200"
-              title="Sort by date"
+              className="flex h-9 items-center gap-2 shrink-0 px-3 bg-gray-900 border border-gray-700 rounded-lg hover:bg-gray-800 hover:border-orange-500/50 text-white text-sm transition-all duration-200"
+              title="Sort by applied date"
             >
               {sortOrder === 'desc' && <ArrowDown className="h-4 w-4 text-orange-400" />}
               {sortOrder === 'asc' && <ArrowUp className="h-4 w-4 text-orange-400" />}
               {sortOrder === null && <ArrowUpDown className="h-4 w-4 text-gray-400" />}
               <span className="hidden sm:inline">Date</span>
             </button>
-            {/* Add Button */}
-            <button
-              onClick={openNewModal}
-              className="flex items-center gap-2 px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-200 font-medium shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30"
-            >
-              <Plus className="h-5 w-5" />
-              <span className="hidden sm:inline">Add</span>
-            </button>
-          </div>
-          </div>
-          
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by company or position..."
-              className="w-full pl-12 pr-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          {/* Date Range Filter */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
-            <div className="flex-1 sm:flex-none sm:w-48">
-              <label className="block text-sm font-medium text-gray-300 mb-2">Start Date</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
-                />
-              </div>
+            {/* Date range — same row */}
+            <div className="relative shrink-0">
+              <Calendar className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-500" />
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                aria-label="Start date"
+                title="Start date"
+                className="h-9 w-[140px] sm:w-[148px] rounded-lg border border-gray-700 bg-gray-900/50 pl-8 pr-2 text-sm text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500"
+              />
             </div>
-            <div className="flex-1 sm:flex-none sm:w-48">
-              <label className="block text-sm font-medium text-gray-300 mb-2">End Date</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  max={new Date().toISOString().split('T')[0]}
-                  className="w-full pl-10 pr-4 py-2 bg-gray-900/50 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
-                />
-              </div>
+            <div className="relative shrink-0">
+              <Calendar className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-500" />
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                aria-label="End date"
+                title="End date"
+                className="h-9 w-[140px] sm:w-[148px] rounded-lg border border-gray-700 bg-gray-900/50 pl-8 pr-2 text-sm text-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500"
+              />
             </div>
             {(startDate || endDate !== new Date().toISOString().split('T')[0]) && (
               <button
+                type="button"
                 onClick={() => {
                   setStartDate('')
                   setEndDate(new Date().toISOString().split('T')[0])
                 }}
-                className="px-4 py-2 text-sm text-gray-400 hover:text-white border border-gray-700 rounded-lg hover:bg-gray-800 hover:border-orange-500/50 transition-all duration-200"
+                className="h-9 shrink-0 px-2.5 text-xs text-gray-400 hover:text-white border border-gray-700 rounded-lg hover:bg-gray-800 hover:border-orange-500/50 transition-all duration-200"
+                title="Reset date range"
               >
-                Clear Dates
+                Clear dates
               </button>
             )}
+            {/* Search: button toggles field */}
+            <button
+              type="button"
+              onClick={() => setSearchOpen((o) => !o)}
+              aria-expanded={searchOpen}
+              aria-pressed={searchOpen}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 ${
+                searchQuery
+                  ? 'border-orange-500/50 bg-orange-500/10 text-orange-400'
+                  : 'border-gray-700 bg-gray-900 text-gray-300 hover:border-orange-500/50 hover:bg-gray-800'
+              } ${searchOpen ? 'ring-2 ring-orange-500/40' : ''}`}
+              title={searchOpen ? 'Close search' : 'Search company or position'}
+            >
+              <Search className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={openNewModal}
+              className="flex h-9 shrink-0 items-center gap-2 px-4 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-200 font-medium text-sm shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30"
+            >
+              <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="hidden sm:inline">Add</span>
+            </button>
           </div>
+          {searchOpen ? (
+            <div className="mt-4 flex max-w-xl items-center gap-3">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Company or position…"
+                  className="h-9 w-full rounded-lg border border-gray-700 bg-gray-900/80 py-0 pl-9 pr-8 text-sm text-white placeholder-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500"
+                />
+                {searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:text-white"
+                    aria-label="Clear search"
+                  >
+                    ✕
+                  </button>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                className="h-9 shrink-0 px-3 text-sm text-gray-400 hover:text-white"
+              >
+                Done
+              </button>
+            </div>
+          ) : null}
         </div>
 
-        {/* Applications Table */}
+        {/* Applications Table — scrolls inside viewport */}
         {applications.length === 0 ? (
-          <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 p-12 text-center">
-            <Briefcase className="h-16 w-16 text-gray-700 mx-auto mb-6" />
-            <h3 className="text-xl font-semibold text-white mb-2">No applications yet</h3>
-            <p className="text-gray-400 mb-6">Get started by adding your first job application.</p>
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-auto rounded-xl border border-gray-800 bg-gray-900/50 p-8 text-center backdrop-blur-sm">
+            <Briefcase className="mx-auto mb-4 h-14 w-14 text-gray-700" />
+            <h3 className="mb-2 text-lg font-semibold text-white">No applications yet</h3>
+            <p className="mb-4 text-gray-400">Get started by adding your first job application.</p>
             <div className="flex justify-center">
               <button
                 onClick={openNewModal}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-200 font-medium shadow-lg shadow-orange-500/20"
+                className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-3 font-medium text-white shadow-lg shadow-orange-500/20 transition-all duration-200 hover:bg-orange-600"
               >
                 <Plus className="h-5 w-5" />
                 Add Application
@@ -456,16 +498,26 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
             </div>
           </div>
         ) : (
-          <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-900/80 border-b border-gray-800">
+          <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-800 bg-gray-900/50 backdrop-blur-sm min-h-[min(52vh,720px)] sm:min-h-[min(58vh,800px)]">
+            <div className="min-h-0 min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
+              <table className="w-full min-w-[900px] table-fixed">
+                <colgroup>
+                  <col className="w-[7%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[11%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[11%]" />
+                  <col className="w-[30%]" />
+                  <col className="w-[7%]" />
+                </colgroup>
+                <thead className="sticky top-0 z-10 border-b border-gray-800 bg-gray-950/95 backdrop-blur-sm shadow-[0_1px_0_0_rgba(31,41,55,0.9)]">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Job ID</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Company</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Position</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Job ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Company</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Position</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       <button
                         onClick={toggleSortOrder}
                         className="flex items-center gap-1 hover:text-orange-400 transition-colors"
@@ -476,62 +528,62 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
                         {sortOrder === null && <ArrowUpDown className="h-3 w-3" />}
                       </button>
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Location</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Notes</th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Location</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Notes</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
                   {filteredAndSortedApplications.map((app, index) => (
                     <tr key={app.id} className="hover:bg-gray-900/50 transition-colors group">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-500 font-mono">{app.id.slice(0, 8)}</span>
+                      <td className="px-4 py-3 whitespace-nowrap align-top">
+                        <span className="text-xs text-gray-500 font-mono">{app.id.slice(0, 8)}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Building2 className="h-4 w-4 mr-2 text-orange-500/60" />
-                          <span className="text-sm font-medium text-white">{app.company}</span>
+                      <td className="px-4 py-3 align-top">
+                        <div className="flex min-w-0 items-start gap-2">
+                          <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-orange-500/60" />
+                          <span className="text-sm font-medium text-white break-words">{app.company}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-gray-300">{app.position}</span>
+                      <td className="px-4 py-3 align-top">
+                        <span className="text-sm text-gray-300 break-words">{app.position}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${statusColors[app.status]}`}>
+                      <td className="px-4 py-3 align-top whitespace-nowrap">
+                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${statusColors[app.status]}`}>
                           {statusLabels[app.status]}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-2 text-orange-500/60" />
+                      <td className="px-4 py-3 align-top whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="h-4 w-4 shrink-0 text-orange-500/60" />
                           <span className="text-sm text-gray-400">{new Date(app.appliedDate).toLocaleDateString()}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 align-top">
                         {app.location ? (
-                          <div className="flex items-center">
-                            <MapPin className="h-4 w-4 mr-2 text-orange-500/60" />
-                            <span className="text-sm text-gray-400">{app.location}</span>
+                          <div className="flex min-w-0 items-start gap-1.5">
+                            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-orange-500/60" />
+                            <span className="text-sm text-gray-400 break-words">{app.location}</span>
                           </div>
                         ) : (
                           <span className="text-sm text-gray-600">—</span>
                         )}
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-gray-400 line-clamp-1 max-w-xs">{app.notes || '—'}</span>
+                      <td className="px-4 py-3 align-top text-sm text-gray-300 whitespace-normal break-words">
+                        {app.notes || <span className="text-gray-600">—</span>}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <td className="px-4 py-3 whitespace-nowrap text-right align-top">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleEdit(app)}
-                            className="p-2 text-gray-400 hover:text-orange-400 hover:bg-gray-800 rounded-lg transition-all duration-200"
+                            className="p-2 text-gray-400 transition-all duration-200 hover:bg-gray-800 hover:text-orange-400 rounded-lg"
                             title="Edit"
                           >
                             <Edit2 className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(app.id)}
-                            className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-800 rounded-lg transition-all duration-200"
+                            className="p-2 text-gray-400 transition-all duration-200 hover:bg-gray-800 hover:text-red-400 rounded-lg"
                             title="Delete"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -544,12 +596,20 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
               </table>
             </div>
             {filteredAndSortedApplications.length === 0 && (
-              <div className="px-6 py-12 text-center">
+              <div className="px-6 py-8 text-center">
                 <p className="text-gray-400">No applications match the selected filter.</p>
               </div>
             )}
           </div>
         )}
+
+        {applications.length > 0 ? (
+          <div className="min-w-0 max-w-full shrink-0 overflow-x-auto pt-4">
+            <SankeyDiagram applications={filteredAndSortedApplications} compact />
+          </div>
+        ) : null}
+          </div>
+        </div>
       </main>
 
       {/* Modal */}

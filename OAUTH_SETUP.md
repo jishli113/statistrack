@@ -1,6 +1,6 @@
 # OAuth Setup Guide
 
-This guide will help you set up OAuth authentication (Google and GitHub) for your Job Application Tracker.
+This guide will help you set up OAuth authentication (Google and GitHub) for StatisTrack.
 
 ## Prerequisites
 
@@ -33,13 +33,13 @@ npx prisma migrate dev --name add_oauth_support
 4. Click **Create Credentials** → **OAuth client ID**
 5. If prompted, configure the OAuth consent screen first:
    - User Type: External
-   - App name: Job Application Tracker
+   - App name: StatisTrack
    - Support email: your email
    - Authorized domains: (leave empty for localhost)
    - Scopes: email, profile, openid (default)
 6. Create OAuth client ID:
    - Application type: **Web application**
-   - Name: Job Tracker (or any name)
+   - Name: StatisTrack (or any name)
    - **Authorized redirect URIs**: 
      - `http://localhost:3002/api/auth/callback/google`
      - `https://your-domain.vercel.app/api/auth/callback/google` (for production)
@@ -61,7 +61,7 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
 2. Click **New OAuth App**
 3. Fill in:
-   - **Application name**: Job Application Tracker
+   - **Application name**: StatisTrack
    - **Homepage URL**: `http://localhost:3002` (or your production URL)
    - **Authorization callback URL**: 
      - `http://localhost:3002/api/auth/callback/github`
