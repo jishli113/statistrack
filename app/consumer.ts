@@ -7,9 +7,7 @@ import { getGmailMessageSearchText } from '@/lib/gmailMessageText'
 import { claudeResponse } from '@/app/evalutation'
 
 type Job = { userId: string }
-//Initial backoff of one second
 const RECEIVE_BACKOFF_INITIAL_MS = 1_000
-//Maximum backoff of three minutes
 const RECEIVE_BACKOFF_MAX_MS = 3 * 60 * 1_000
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))

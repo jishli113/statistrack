@@ -22,6 +22,7 @@ model User {
   accounts      Account[]
   applications  JobApplication[]
   sessions      Session[]
+  currentFolder   JobApplicationFolder? @relation(fields: [currentFolderId], references: [id], onDelete: SetNull)
 }
 
 model Account {
@@ -79,4 +80,10 @@ model JobApplication {
   updatedAt       DateTime             @updatedAt
   externalJobId   String?
   user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model JobApplicationFolder {
+  id                  String   @id @default(cuid())
+  folderName          String   @unique
+  jobApplicationIds   String[] @default([])
 }

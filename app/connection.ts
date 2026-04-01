@@ -5,24 +5,6 @@ import { Ratelimit } from "@upstash/ratelimit"
 const upstashUrl = process.env.UPSTASH_REDIS_REST_URL
 const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN
 
-fetch('http://127.0.0.1:7645/ingest/dd7520f7-f070-4459-993e-c235e8ec3533', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '22dd7a' },
-  body: JSON.stringify({
-    sessionId: '22dd7a',
-    location: 'connection.ts:module-load',
-    message: 'Upstash Redis env presence',
-    data: {
-      hasUrl: Boolean(upstashUrl),
-      hasToken: Boolean(upstashToken),
-      hypothesisId: 'H1',
-    },
-    timestamp: Date.now(),
-    runId: 'post-fix',
-  }),
-}).catch(() => {})
-// #endregion
-
 const redis = new Redis({
     url: upstashUrl,
     token: upstashToken,

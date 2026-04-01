@@ -10,21 +10,14 @@ export default function Home() {
   const { data: session, status } = useSession()
   const router = useRouter()
   
-  // Handle OAuth callback - check for session after redirect
   useEffect(() => {
     if (typeof window === 'undefined') return
     
     if (status === 'authenticated' && session) {
-      console.log('✅ Session authenticated, user:', session.user?.email)
-      // Clean up any OAuth callback params from URL
       const params = new URLSearchParams(window.location.search)
       if (params.toString()) {
-        console.log('🧹 Cleaning up URL params:', params.toString())
         router.replace('/')
       }
-    }
-    else{
-      console.log(session, status, "session, status")
     }
   }, [session, status, router])
   
@@ -33,7 +26,6 @@ export default function Home() {
   }
   
   if (!session) {
-    console.log("no session, redirecting to login")
     return <LoginPage />
   }
   
