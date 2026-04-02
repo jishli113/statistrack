@@ -136,6 +136,12 @@ export const consumeMessage = async () => {
 
     const messageData = message.body
     const userId = messageData.userId
+    // Read user's chosen folder only to populate new rows — we set `JobApplication.currentFolderId`, not `User`.
+    const userFolderRow = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { currentFolder: { select: { id: true } } },
+    })
+    const folderId = userFolderRow?.currentFolder?.id
     console.log('[consumer] message received', { streamId: message.streamId, hasUserId: Boolean(userId) })
 
     const account = await prisma.account.findFirst({
@@ -260,7 +266,8 @@ export const consumeMessage = async () => {
                     status: parseJobStatusFromClaude(parsedData.type),
                     appliedDate: appliedDateFromEmail,
                     externalJobId,
-                  },
+                    currentFolderId: folderId ?? null,
+                  } as Prisma.JobApplicationUncheckedCreateInput,
                 })
               }
             } else if (parsedData.location) {
@@ -295,7 +302,8 @@ export const consumeMessage = async () => {
                     externalJobId: parsedData.job_id
                       ? String(parsedData.job_id)
                       : null,
-                  },
+                    currentFolderId: folderId ?? null,
+                  } as Prisma.JobApplicationUncheckedCreateInput,
                 })
               }
             } else {
@@ -323,7 +331,8 @@ export const consumeMessage = async () => {
                     externalJobId: parsedData.job_id
                       ? String(parsedData.job_id)
                       : null,
-                  },
+                    currentFolderId: folderId ?? null,
+                  } as Prisma.JobApplicationUncheckedCreateInput,
                 })
               } else {
                 console.log("updating existing job application")

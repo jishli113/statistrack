@@ -4,9 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // App/runtime: Transaction pooler (6543). Migrations: direct Postgres (5432) — migrate dev hangs on pooler-only URL.
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -21,8 +18,10 @@ model User {
   gmailLastSynced DateTime? 
   accounts      Account[]
   applications  JobApplication[]
-  sessions      Session[]
-  currentFolder   JobApplicationFolder? @relation(fields: [currentFolderId], references: [id], onDelete: SetNull)
+  folders       JobApplicationFolder[]
+  sessions        Session[]
+  currentFolderId String?
+  currentFolder   JobApplicationFolder? @relation("UserCurrentFolder", fields: [currentFolderId], references: [id], onDelete: SetNull)
 }
 
 model Account {
@@ -80,10 +79,17 @@ model JobApplication {
   updatedAt       DateTime             @updatedAt
   externalJobId   String?
   user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentFolderId String?
+  currentFolder   JobApplicationFolder? @relation("JobApplicationCurrentFolder", fields: [currentFolderId], references: [id], onDelete: SetNull)
 }
 
 model JobApplicationFolder {
-  id                  String   @id @default(cuid())
-  folderName          String   @unique
-  jobApplicationIds   String[] @default([])
+  id                          String            @id @default(cuid())
+  userId                      String
+  user                        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderName                  String
+  usersWithThisAsCurrentFolder User[]           @relation("UserCurrentFolder")
+  applicationsWithThisFolder   JobApplication[] @relation("JobApplicationCurrentFolder")
+
+  @@unique([userId, folderName])
 }

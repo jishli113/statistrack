@@ -1,15 +1,20 @@
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Singleton pattern for Prisma Client
-// Prevents multiple instances in serverless environments (Vercel + Supabase)
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  })
+function createPrismaClient() {
+  const url = process.env.DATABASE_URL
+  if (!url) {
+    throw new Error('DATABASE_URL is not set')
+  }
+  const adapter = new PrismaPg({ connectionString: url })
+  const log = process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
+  return new PrismaClient({ adapter, log } as unknown as ConstructorParameters<typeof PrismaClient>[0])
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient()
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma

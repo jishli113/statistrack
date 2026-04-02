@@ -1,9 +1,27 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useSession } from 'next-auth/react'
 import Image from 'next/image'
 import statisTrackLogo from '@/static/statis_track.png'
-import { Plus, Briefcase, Building2, Calendar, MapPin, Trash2, Edit2, ArrowUpDown, ArrowUp, ArrowDown, Filter, Search } from 'lucide-react'
+import {
+  Plus,
+  Briefcase,
+  Building2,
+  Calendar,
+  MapPin,
+  Trash2,
+  Edit2,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Filter,
+  Search,
+  PanelLeft,
+  Folder,
+  Pencil,
+  X,
+} from 'lucide-react'
 import SankeyDiagram from './SankeyDiagram'
 
 interface DashboardProps {
@@ -18,6 +36,8 @@ interface JobApplication {
   appliedDate: string
   location?: string
   notes?: string
+  /** Which folder this application belongs to (sidebar scope). */
+  currentFolderId?: string | null
 }
 function dbStatusToUi(db: string): JobApplication['status'] {
   switch (db) {
@@ -76,7 +96,12 @@ const statusLabels = {
 type SortOrder = 'asc' | 'desc' | null
 type StatusFilter = 'all' | 'applied' | 'interview' | 'offer' | 'rejected' | 'rejected_after_interview'
 
+type FolderRow = { id: string; folderName: string; userId: string }
+
 export default function Dashboard({ onSignOut }: DashboardProps = {}) {
+  const { data: session } = useSession()
+  const sessionUserId = session?.user?.id
+
   const [applications, setApplications] = useState<JobApplication[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editingApp, setEditingApp] = useState<JobApplication | null>(null)
@@ -96,16 +121,50 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
     notes: '',
   })
 
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [folders, setFolders] = useState<FolderRow[]>([])
+  const [currentFolder, setCurrentFolder] = useState<{
+    id: string
+    folderName: string
+  } | null>(null)
+  const [folderRenaming, setFolderRenaming] = useState(false)
+  const [folderRenameDraft, setFolderRenameDraft] = useState('')
+  const [renameSetAsCurrent, setRenameSetAsCurrent] = useState(false)
+  const [addFolderOpen, setAddFolderOpen] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+  const [newFolderAsCurrent, setNewFolderAsCurrent] = useState(false)
+  const [addFolderBusy, setAddFolderBusy] = useState(false)
+
   useEffect(() => {
+    if (!sessionUserId) {
+      setFolders([])
+      setCurrentFolder(null)
+      return
+    }
+    setFolders([])
+    setCurrentFolder(null)
     fetchApplications()
+    void fetchFolders()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [sessionUserId])
 
   useEffect(() => {
     if (searchOpen) {
       searchInputRef.current?.focus()
     }
   }, [searchOpen])
+
+  useEffect(() => {
+    if (!addFolderOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || addFolderBusy) return
+      setAddFolderOpen(false)
+      setNewFolderName('')
+      setNewFolderAsCurrent(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [addFolderOpen, addFolderBusy])
 
   const fetchApplications = async () => {
     try {
@@ -117,12 +176,168 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
             ...row,
             status: dbStatusToUi(row.status),
             appliedDate: toDateInputValue(String(row.appliedDate)),
+            currentFolderId: row.currentFolderId ?? null,
           })
         )
         setApplications(normalized)
       }
     } catch (error) {
       console.error('Failed to fetch applications:', error)
+    }
+  }
+
+  const fetchFolders = async () => {
+    if (!sessionUserId) return
+    try {
+      const res = await fetch('/api/folders', { cache: 'no-store' })
+      if (res.ok) {
+        const data = await res.json()
+        const raw: FolderRow[] = (data.folders ?? []).filter(
+          (f: FolderRow) => f.userId === sessionUserId
+        )
+        setFolders(raw)
+        const cur = data.currentFolder as { id: string; folderName: string } | null
+        if (cur && raw.some((f) => f.id === cur.id)) {
+          setCurrentFolder(cur)
+        } else {
+          setCurrentFolder(raw[0] ?? null)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch folders:', error)
+    }
+  }
+
+  const openAddFolderModal = () => {
+    setNewFolderName('')
+    setNewFolderAsCurrent(false)
+    setAddFolderOpen(true)
+  }
+
+  const closeAddFolderModal = () => {
+    setAddFolderOpen(false)
+    setNewFolderName('')
+    setNewFolderAsCurrent(false)
+  }
+
+  const dismissAddFolderModal = () => {
+    if (addFolderBusy) return
+    closeAddFolderModal()
+  }
+
+  const publishNewFolder = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const name = newFolderName.trim()
+    if (!name || addFolderBusy) return
+    setAddFolderBusy(true)
+    try {
+      const res = await fetch('/api/folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          folderName: name,
+          setCurrentFolder: newFolderAsCurrent,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        alert(
+          typeof data.error === 'string'
+            ? data.error
+            : 'Could not create folder'
+        )
+        return
+      }
+      setAddFolderBusy(false)
+      closeAddFolderModal()
+      await fetchFolders()
+    } catch (err) {
+      console.error('Create folder failed:', err)
+      alert('Could not create folder')
+    } finally {
+      setAddFolderBusy(false)
+    }
+  }
+
+  const selectFolder = async (folderId: string) => {
+    try {
+      const res = await fetch('/api/user/current-folder', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderId }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setCurrentFolder(data.currentFolder ?? null)
+        setSidebarOpen(false)
+      }
+    } catch (error) {
+      console.error('Failed to set folder:', error)
+    }
+  }
+
+  const startFolderRename = () => {
+    if (!currentFolder) return
+    setFolderRenameDraft(currentFolder.folderName)
+    setRenameSetAsCurrent(false)
+    setFolderRenaming(true)
+  }
+
+  const cancelFolderRename = () => {
+    setFolderRenaming(false)
+    setFolderRenameDraft('')
+    setRenameSetAsCurrent(false)
+  }
+
+  const saveFolderRename = async () => {
+    if (!currentFolder) return
+    const name = folderRenameDraft.trim()
+    if (!name) return
+    try {
+      const res = await fetch(`/api/folders/${currentFolder.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderName: name }),
+      })
+      if (res.ok) {
+        const updated = (await res.json()) as FolderRow
+        setFolders((prev) =>
+          prev.map((f) =>
+            f.id === updated.id
+              ? { ...f, folderName: updated.folderName }
+              : f
+          )
+        )
+        if (renameSetAsCurrent) {
+          const curRes = await fetch('/api/user/current-folder', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folderId: updated.id }),
+          })
+          if (curRes.ok) {
+            const curData = await curRes.json()
+            setCurrentFolder(curData.currentFolder ?? null)
+          } else {
+            setCurrentFolder({
+              id: updated.id,
+              folderName: updated.folderName,
+            })
+          }
+        } else {
+          setCurrentFolder({
+            id: updated.id,
+            folderName: updated.folderName,
+          })
+        }
+        setFolderRenaming(false)
+      } else {
+        const err = await res.json().catch(() => ({}))
+        alert(
+          typeof err.error === 'string' ? err.error : 'Could not rename folder'
+        )
+      }
+    } catch (error) {
+      console.error('Rename folder failed:', error)
     }
   }
 
@@ -198,22 +413,30 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
     setShowModal(true)
   }
 
+  /** Applications assigned to the sidebar’s selected folder only. */
+  const applicationsForFolder = useMemo(() => {
+    if (!currentFolder) return []
+    return applications.filter(
+      (app) => app.currentFolderId === currentFolder.id
+    )
+  }, [applications, currentFolder])
+
   // Calculate status counts (combine both rejection types for metrics)
-  const statusCounts = applications.reduce((acc, app) => {
+  const statusCounts = applicationsForFolder.reduce((acc, app) => {
     const status = app.status === 'rejected_after_interview' ? 'rejected' : app.status
     acc[status] = (acc[status] || 0) + 1
     return acc
   }, {} as Record<string, number>)
-  
+
   // Separate counts for filtering
-  const detailedStatusCounts = applications.reduce((acc, app) => {
+  const detailedStatusCounts = applicationsForFolder.reduce((acc, app) => {
     acc[app.status] = (acc[app.status] || 0) + 1
     return acc
   }, {} as Record<string, number>)
 
   // Filter and sort applications
   const filteredAndSortedApplications = useMemo(() => {
-    let filtered = applications
+    let filtered = applicationsForFolder
 
     // Apply search filter (company or position)
     if (searchQuery.trim()) {
@@ -255,7 +478,14 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
     }
 
     return filtered
-  }, [applications, searchQuery, statusFilter, startDate, endDate, sortOrder])
+  }, [
+    applicationsForFolder,
+    searchQuery,
+    statusFilter,
+    startDate,
+    endDate,
+    sortOrder,
+  ])
 
   const toggleSortOrder = () => {
     if (sortOrder === 'desc') {
@@ -273,6 +503,15 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
       <header className="z-40 shrink-0 border-b border-gray-900 bg-black/80 backdrop-blur-lg">
         <div className="mx-auto box-border flex w-full max-w-[1600px] items-center justify-start gap-4 px-4 py-2.5 sm:gap-6 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              className="shrink-0 rounded-lg border border-gray-800 p-2 text-gray-300 transition-all duration-200 hover:border-orange-500/50 hover:bg-gray-900/50 hover:text-white"
+              aria-label="Open folders"
+              title="Folders"
+            >
+              <PanelLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+            </button>
             <h1 className="m-0 shrink-0">
               <Image
                 src={statisTrackLogo}
@@ -297,8 +536,208 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
         </div>
       </header>
 
+      {sidebarOpen ? (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            aria-hidden
+            onClick={() => setSidebarOpen(false)}
+          />
+          <aside
+            className="fixed left-0 top-0 z-50 flex h-full w-[min(18rem,88vw)] flex-col border-r border-gray-800 bg-gray-950/98 shadow-2xl"
+            aria-label="Folders"
+          >
+            <div className="flex items-center justify-between gap-2 border-b border-gray-800 px-4 py-3">
+              <span className="text-sm font-semibold tracking-tight text-gray-100">
+                Folders
+              </span>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={openAddFolderModal}
+                  className="flex items-center gap-1 rounded-lg border border-gray-700 px-2 py-1.5 text-xs font-medium text-gray-200 transition-colors hover:border-orange-500/40 hover:bg-gray-900 hover:text-white"
+                  aria-label="Add folder"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add folder
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(false)}
+                  className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-900 hover:text-white"
+                  aria-label="Close folders"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            <nav className="min-h-0 flex-1 overflow-y-auto p-2">
+              {folders.length === 0 ? (
+                <p className="px-2 py-3 text-sm text-gray-500">
+                  No folders yet. Folders appear when you have applications in a
+                  folder or set a current folder.
+                </p>
+              ) : (
+                <ul className="space-y-1">
+                  {folders.map((f) => (
+                    <li key={f.id}>
+                      <button
+                        type="button"
+                        onClick={() => void selectFolder(f.id)}
+                        className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
+                          currentFolder?.id === f.id
+                            ? 'bg-orange-500/15 font-medium text-orange-200 ring-1 ring-orange-500/30'
+                            : 'text-gray-300 hover:bg-gray-900 hover:text-white'
+                        }`}
+                      >
+                        <Folder className="h-4 w-4 shrink-0 opacity-80" />
+                        <span className="truncate">{f.folderName}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </nav>
+          </aside>
+        </>
+      ) : null}
+
+      {addFolderOpen ? (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => dismissAddFolderModal()}
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-md rounded-xl border border-gray-800 bg-gray-900 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-folder-title"
+          >
+            <h2
+              id="add-folder-title"
+              className="mb-4 text-lg font-semibold text-white"
+            >
+              New folder
+            </h2>
+            <form onSubmit={publishNewFolder} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="new-folder-name"
+                  className="mb-2 block text-sm font-medium text-gray-300"
+                >
+                  Folder name
+                </label>
+                <input
+                  id="new-folder-name"
+                  type="text"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  className="w-full rounded-lg border border-gray-700 bg-black/50 px-4 py-3 text-white placeholder-gray-500 transition-all focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                  placeholder="e.g. Summer 2026"
+                  autoFocus
+                  disabled={addFolderBusy}
+                  maxLength={200}
+                />
+              </div>
+              <label className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={newFolderAsCurrent}
+                  onChange={(e) => setNewFolderAsCurrent(e.target.checked)}
+                  disabled={addFolderBusy}
+                  className="h-4 w-4 rounded border-gray-600 bg-gray-900 text-orange-500 focus:ring-orange-500/40"
+                />
+                Set as my current folder
+              </label>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => dismissAddFolderModal()}
+                  disabled={addFolderBusy}
+                  className="rounded-lg border border-gray-700 px-4 py-2.5 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-800 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addFolderBusy || !newFolderName.trim()}
+                  className="rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:opacity-50"
+                >
+                  {addFolderBusy ? 'Publishing…' : 'Publish folder'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
       <main className="mx-auto box-border flex min-h-0 w-full max-w-[1600px] flex-1 flex-col overflow-hidden px-4 py-1.5 sm:px-6 lg:px-8">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]">
+          {/* Current folder — name + rename */}
+          <div className="flex w-full min-w-0 shrink-0 flex-wrap items-center gap-2 border-b border-gray-800/80 pb-2">
+            <Folder className="h-5 w-5 shrink-0 text-orange-500/70" />
+            {folderRenaming ? (
+              <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                <input
+                  type="text"
+                  value={folderRenameDraft}
+                  onChange={(e) => setFolderRenameDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void saveFolderRename()
+                    if (e.key === 'Escape') cancelFolderRename()
+                  }}
+                  className="min-w-[12rem] flex-1 rounded-lg border border-gray-700 bg-gray-900/80 px-3 py-1.5 text-sm text-white focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                  autoFocus
+                  aria-label="Folder name"
+                />
+                <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm text-gray-400">
+                  <input
+                    type="checkbox"
+                    checked={renameSetAsCurrent}
+                    onChange={(e) => setRenameSetAsCurrent(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-600 bg-gray-900 text-orange-500 focus:ring-orange-500/40"
+                  />
+                  Set as my current folder
+                </label>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void saveFolderRename()}
+                    className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelFolderRename}
+                    className="rounded-lg border border-gray-700 px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-900"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <span className="min-w-0 flex-1 truncate text-base font-semibold text-gray-100 sm:text-lg">
+                  {currentFolder?.folderName ?? 'No folder selected'}
+                </span>
+                {currentFolder ? (
+                  <button
+                    type="button"
+                    onClick={startFolderRename}
+                    className="shrink-0 rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-900 hover:text-orange-400"
+                    aria-label="Rename folder"
+                    title="Rename folder"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </>
+            )}
+          </div>
+
           {/* Stats — compact horizontal row above applications */}
           <div className="w-full min-w-0 shrink-0">
             <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-gray-500 sm:text-[10px]">
@@ -313,7 +752,9 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
                   <p className="text-[8px] font-medium uppercase leading-none tracking-wider text-gray-500 sm:text-[9px]">
                     Total
                   </p>
-                  <p className="text-sm font-bold leading-none text-white sm:text-base">{applications.length}</p>
+                  <p className="text-sm font-bold leading-none text-white sm:text-base">
+                    {applicationsForFolder.length}
+                  </p>
                 </div>
               </div>
               <div className="flex min-w-0 items-center gap-1.5 rounded-md border border-gray-800 bg-gray-900/50 px-1.5 py-1.5 backdrop-blur-sm sm:gap-2 sm:rounded-lg sm:px-2 sm:py-2">
@@ -497,6 +938,14 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
               </button>
             </div>
           </div>
+        ) : !currentFolder ? (
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-auto rounded-xl border border-gray-800 bg-gray-900/50 p-8 text-center backdrop-blur-sm">
+            <Folder className="mx-auto mb-4 h-14 w-14 text-gray-700" />
+            <h3 className="mb-2 text-lg font-semibold text-white">Select a folder</h3>
+            <p className="max-w-sm text-gray-400">
+              Open the sidebar and choose a folder to view the applications in that folder.
+            </p>
+          </div>
         ) : (
           <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-800 bg-gray-900/50 backdrop-blur-sm min-h-[min(52vh,720px)] sm:min-h-[min(58vh,800px)]">
             <div className="min-h-0 min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
@@ -597,13 +1046,17 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
             </div>
             {filteredAndSortedApplications.length === 0 && (
               <div className="px-6 py-8 text-center">
-                <p className="text-gray-400">No applications match the selected filter.</p>
+                <p className="text-gray-400">
+                  {applicationsForFolder.length === 0
+                    ? 'No applications in this folder yet. Add one or switch folders.'
+                    : 'No applications match the selected filter.'}
+                </p>
               </div>
             )}
           </div>
         )}
 
-        {applications.length > 0 ? (
+        {applications.length > 0 && currentFolder ? (
           <div className="min-w-0 max-w-full shrink-0 overflow-x-auto pt-4">
             <SankeyDiagram applications={filteredAndSortedApplications} compact />
           </div>
