@@ -21,6 +21,8 @@ import {
   Folder,
   Pencil,
   X,
+  List,
+  BarChart3,
 } from 'lucide-react'
 import SankeyDiagram from './SankeyDiagram'
 
@@ -134,6 +136,10 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
   const [newFolderName, setNewFolderName] = useState('')
   const [newFolderAsCurrent, setNewFolderAsCurrent] = useState(false)
   const [addFolderBusy, setAddFolderBusy] = useState(false)
+  /** Full-page applications list vs full-page status-flow graph */
+  const [dashboardView, setDashboardView] = useState<'applications' | 'graph'>(
+    'applications'
+  )
 
   useEffect(() => {
     if (!sessionUserId) {
@@ -674,7 +680,7 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
       ) : null}
 
       <main className="mx-auto box-border flex min-h-0 w-full max-w-[1600px] flex-1 flex-col overflow-hidden px-4 py-1.5 sm:px-6 lg:px-8">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]">
+        <div className="scrollbar-hide flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden">
           {/* Current folder — name + rename */}
           <div className="flex w-full min-w-0 shrink-0 flex-wrap items-center gap-2 border-b border-gray-800/80 pb-2">
             <Folder className="h-5 w-5 shrink-0 text-orange-500/70" />
@@ -738,7 +744,44 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
             )}
           </div>
 
+          {/* Toggle: full-page applications vs full-page graph */}
+          <div
+            className="flex w-full shrink-0 gap-1 rounded-lg border border-gray-800 bg-gray-950/90 p-1"
+            role="tablist"
+            aria-label="Dashboard view"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={dashboardView === 'applications'}
+              onClick={() => setDashboardView('applications')}
+              className={`flex min-w-0 flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                dashboardView === 'applications'
+                  ? 'bg-orange-500/20 text-orange-100 ring-1 ring-orange-500/40'
+                  : 'text-gray-400 hover:bg-gray-900 hover:text-white'
+              }`}
+            >
+              <List className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate">Applications</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={dashboardView === 'graph'}
+              onClick={() => setDashboardView('graph')}
+              className={`flex min-w-0 flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                dashboardView === 'graph'
+                  ? 'bg-orange-500/20 text-orange-100 ring-1 ring-orange-500/40'
+                  : 'text-gray-400 hover:bg-gray-900 hover:text-white'
+              }`}
+            >
+              <BarChart3 className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate">Status flow</span>
+            </button>
+          </div>
+
           {/* Stats — compact horizontal row above applications */}
+          {dashboardView === 'applications' ? (
           <div className="w-full min-w-0 shrink-0">
             <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-gray-500 sm:text-[10px]">
               Stats
@@ -792,9 +835,10 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
               </div>
             </div>
           </div>
+          ) : null}
 
-          {/* Applications — full width */}
-          <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-1.5 overflow-x-hidden">
+          {dashboardView === 'applications' ? (
+          <div className="scrollbar-hide flex min-h-0 w-full min-w-0 flex-1 flex-col gap-1.5 overflow-x-hidden">
         {/* Actions and Filters */}
         <div className="shrink-0">
           <h2 className="mb-3 text-xl font-bold tracking-tight text-white sm:text-2xl">Applications</h2>
@@ -948,7 +992,7 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
           </div>
         ) : (
           <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-800 bg-gray-900/50 backdrop-blur-sm min-h-[min(52vh,720px)] sm:min-h-[min(58vh,800px)]">
-            <div className="min-h-0 min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
+            <div className="scrollbar-hide min-h-0 min-w-0 flex-1 overflow-auto">
               <table className="w-full min-w-[900px] table-fixed">
                 <colgroup>
                   <col className="w-[7%]" />
@@ -1055,13 +1099,49 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
             )}
           </div>
         )}
-
-        {applications.length > 0 && currentFolder ? (
-          <div className="min-w-0 max-w-full shrink-0 overflow-x-auto pt-4">
-            <SankeyDiagram applications={filteredAndSortedApplications} compact />
           </div>
-        ) : null}
+          ) : (
+          <div
+            className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-800 bg-gray-900/50 backdrop-blur-sm"
+            aria-label="Status flow graph"
+          >
+            {applications.length === 0 ? (
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-auto p-8 text-center">
+                <BarChart3 className="mx-auto mb-4 h-14 w-14 text-gray-700" />
+                <h3 className="mb-2 text-lg font-semibold text-white">No data yet</h3>
+                <p className="max-w-sm text-gray-400">
+                  Add applications to see how they move through stages.
+                </p>
+              </div>
+            ) : !currentFolder ? (
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-auto p-8 text-center">
+                <Folder className="mx-auto mb-4 h-14 w-14 text-gray-700" />
+                <h3 className="mb-2 text-lg font-semibold text-white">Select a folder</h3>
+                <p className="max-w-sm text-gray-400">
+                  Choose a folder in the sidebar to see the status flow for that folder.
+                </p>
+              </div>
+            ) : (
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden p-3 sm:p-4">
+                <div className="shrink-0">
+                  <h2 className="text-lg font-bold tracking-tight text-white sm:text-xl">
+                    Status flow
+                  </h2>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    How applications move through stages in this folder (same filters as
+                    Applications apply when you switch back).
+                  </p>
+                </div>
+                <div className="min-h-0 min-w-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
+                  <SankeyDiagram
+                    applications={filteredAndSortedApplications}
+                    compact={false}
+                  />
+                </div>
+              </div>
+            )}
           </div>
+          )}
         </div>
       </main>
 

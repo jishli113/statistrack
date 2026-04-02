@@ -31,20 +31,37 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+@layer base {
+  /* Default scrollbars; scoped to layer so utilities can override */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--black-secondary);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--gray-dark);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--orange-accent);
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: var(--black-secondary);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--gray-dark);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--orange-accent);
+@layer utilities {
+  /* Hide scrollbar but keep scroll — beats base ::-webkit-scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+    background: transparent;
+  }
 }
