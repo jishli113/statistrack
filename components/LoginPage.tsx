@@ -12,12 +12,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
-  
-  useEffect(() => {
-    console.log("login page loaded")
-  }, [])
 
-  /** App Router: redirect:true often lands before SessionProvider sees the cookie — refresh RSC + client session. */
   const signInWithCredentials = async () => {
     setAuthError(null)
     const result = await signIn('credentials', {
@@ -44,11 +39,10 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, setCurrentFolder: true }),
       })
       if (res.ok) {
-        const data = await res.json()
-        console.log(data)
+        await res.json()
         await signInWithCredentials()
       }
       else {
@@ -60,7 +54,6 @@ export default function LoginPage() {
   }
 
   const handleOAuthSignIn = async (provider: 'google' | 'github') => {
-    console.log("oauth sign in", provider)
     await signIn(provider, { callbackUrl: '/', redirect: true })
   }
 

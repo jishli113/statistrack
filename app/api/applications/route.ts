@@ -44,6 +44,11 @@ export async function POST(request: Request) {
       )
     }
 
+    const userRow = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { currentFolderId: true },
+    })
+
     const application = await prisma.jobApplication.create({
       data: {
         company,
@@ -53,6 +58,7 @@ export async function POST(request: Request) {
         location: location || null,
         notes: notes || null,
         userId: session.user.id,
+        currentFolderId: userRow?.currentFolderId ?? null,
       },
     })
 
