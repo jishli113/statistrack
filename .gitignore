@@ -37,3 +37,7 @@ next-env.d.ts
 
 # prisma
 /prisma/migrations
+
+.cursor/
+debug.log
+.cursorrules

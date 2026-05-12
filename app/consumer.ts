@@ -1,3 +1,5 @@
+import { appendFileSync, mkdirSync } from 'fs'
+import { join } from 'path'
 import type { JobApplication, Prisma } from '@prisma/client'
 import { redisMQueue, redisRateLimit, createGmailReceiveQueue } from '@/app/connection'
 import { google } from 'googleapis'
@@ -144,10 +146,49 @@ export const consumeMessage = async () => {
     const folderId = userFolderRow?.currentFolder?.id
     console.log('[consumer] message received', { streamId: message.streamId, hasUserId: Boolean(userId) })
 
-    const account = await prisma.account.findFirst({
+    const googleAccountsDebug = await prisma.account.findMany({
       where: { userId, provider: 'google' },
       select: { refresh_token: true },
     })
+    const account = await prisma.account.findFirst({
+      where: {
+        userId,
+        provider: 'google',
+        AND: [{ refresh_token: { not: null } }, { refresh_token: { not: '' } }],
+      },
+      select: { refresh_token: true },
+    })
+    // #region agent log
+    const agentPayload = {
+      sessionId: '4b1014',
+      runId: 'post-fix',
+      hypothesisId: 'C',
+      location: 'app/consumer.ts:consumeMessage',
+      message: 'google Account rows for user',
+      data: {
+        userIdLen: userId.length,
+        googleRowCount: googleAccountsDebug.length,
+        rowsWithNonNullRefresh: googleAccountsDebug.filter((a) => a.refresh_token != null).length,
+        pickedRowWithRefresh: Boolean(account?.refresh_token),
+      },
+      timestamp: Date.now(),
+    }
+    try {
+      const dir = join(process.cwd(), '.cursor')
+      mkdirSync(dir, { recursive: true })
+      appendFileSync(join(dir, 'debug-4b1014.log'), `${JSON.stringify(agentPayload)}\n`)
+    } catch {
+      /* ignore */
+    }
+    fetch('http://127.0.0.1:7743/ingest/9f8650f0-9384-477d-80f3-500190fdf14f', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Session-Id': '4b1014',
+      },
+      body: JSON.stringify(agentPayload),
+    }).catch(() => {})
+    // #endregion
     const userRow = await prisma.user.findUnique({
       where: { id: userId },
       select: { gmailLastSynced: true },
@@ -158,7 +199,10 @@ export const consumeMessage = async () => {
       process.env.GOOGLE_CLIENT_SECRET!
     )
     if (!account || !account.refresh_token) {
-      console.log('[consumer] missing google account token, skipping', { hasAccount: Boolean(account), userId })
+      console.log('[consumer] missing google account token, skipping', {
+        hasAccount: Boolean(account),
+        userId,
+      })
       continue
     }
     oauth2.setCredentials({
@@ -172,12 +216,41 @@ export const consumeMessage = async () => {
     let maxInternalDateMs = cutoffMs
 
     while (true) {
-      const res = await gmail.users.messages.list({
-        userId: 'me',
-        maxResults: 20,
-        pageToken,
-        q: listQuery,
-      })
+      let res
+      try {
+        res = await gmail.users.messages.list({
+          userId: 'me',
+          maxResults: 20,
+          pageToken,
+          q: listQuery,
+        })
+      } catch (err: any) {
+        const errCode =
+          err?.response?.data?.error || err?.code || err?.message || 'unknown'
+        console.error('[consumer] gmail list failed', {
+          userId,
+          error: errCode,
+        })
+        if (errCode === 'invalid_grant') {
+          console.error(
+            '[consumer] invalid_grant for user, clearing refresh token and skipping user',
+            { userId }
+          )
+          try {
+            await prisma.account.updateMany({
+              where: { userId, provider: 'google' },
+              data: { refresh_token: null },
+            })
+          } catch (updateErr) {
+            console.error(
+              '[consumer] failed clearing invalid refresh token',
+              updateErr
+            )
+          }
+          break
+        }
+        throw err
+      }
       if (!res.data.messages?.length) break
       console.log('res.data.messages', res.data.messages)
 
