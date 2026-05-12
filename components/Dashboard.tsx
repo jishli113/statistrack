@@ -440,6 +440,11 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
     return acc
   }, {} as Record<string, number>)
 
+  /** Interview-stage count: active interviews plus rejected-after-interview (had an interview) */
+  const interviewStageCount =
+    (detailedStatusCounts.interview || 0) +
+    (detailedStatusCounts.rejected_after_interview || 0)
+
   // Filter and sort applications
   const filteredAndSortedApplications = useMemo(() => {
     let filtered = applicationsForFolder
@@ -458,6 +463,10 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
       if (statusFilter === 'rejected') {
         // Show both rejection types when filtering by 'rejected'
         filtered = filtered.filter(app => app.status === 'rejected' || app.status === 'rejected_after_interview')
+      } else if (statusFilter === 'interview') {
+        filtered = filtered.filter(
+          (app) => app.status === 'interview' || app.status === 'rejected_after_interview'
+        )
       } else {
         filtered = filtered.filter(app => app.status === statusFilter)
       }
@@ -819,7 +828,7 @@ export default function Dashboard({ onSignOut }: DashboardProps = {}) {
                   <p className="text-[8px] font-medium uppercase leading-none tracking-wider text-gray-500 sm:text-[9px]">
                     Interview
                   </p>
-                  <p className="text-sm font-bold leading-none text-white sm:text-base">{statusCounts.interview || 0}</p>
+                  <p className="text-sm font-bold leading-none text-white sm:text-base">{interviewStageCount}</p>
                 </div>
               </div>
               <div className="flex min-w-0 items-center gap-1.5 rounded-md border border-gray-800 bg-gray-900/50 px-1.5 py-1.5 backdrop-blur-sm sm:gap-2 sm:rounded-lg sm:px-2 sm:py-2">
